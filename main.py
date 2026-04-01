@@ -105,8 +105,8 @@ if menu == "💰 Vendas":
     st.title("Registrar Venda")
     with st.form("form_venda", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
-        with col1: tipo_venda = st.selectbox("Canal", ["Presencial", "Online"])
-        with col2: forma_pagamento = st.selectbox("Pagamento", ["Pix", "Dinheiro", "Cartão"])
+        with col1: tipo_venda = st.selectbox("Tipo", ["Presencial", "Online"])
+        with col2: forma_pagamento = st.selectbox("Pagamento", ["PIX", "Dinheiro", "Cartão"])
         with col3: valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
         descricao = st.text_input("Descrição (Opcional)")
         
