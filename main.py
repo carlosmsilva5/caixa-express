@@ -250,14 +250,107 @@ elif menu == "🛠️ Editar":
                 
         st.divider()
         st.write("Tabela Completa para conferência:")
-        st.divider()
-        st.write("Tabela Completa para conferência:")
-        # Adicionada a formatação da coluna valor para R$
+        
+        # AQUI ESTÁ A CORREÇÃO (parêntese fechado e identação certa)
         st.dataframe(
             df_selecionado, 
             use_container_width=True,
             column_config={
                 "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
             }
+        ) # <-- Este parêntese estava faltando!
         
+    else: # <-- Este else também é necessário!
         st.info(f"Não há registros em {categoria} para editar.")
+
+# ---------------- PÁGINA: BALANÇO MENSAL ----------------
+elif menu == "📊 Balanço":
+    st.title("📊 Balanço Financeiro Geral")
+    
+    senha_digitada = st.text_input("Senha de acesso gerencial:", type="password")
+    
+    if senha_digitada == "admin123":
+        st.success("Acesso Liberado!")
+        st.divider()
+        
+        # Cria cópias para não alterar os dados originais
+        df_v = df_vendas.copy()
+        df_c = df_compras.copy()
+        
+        # Cria uma coluna para identificar o que é venda e o que é despesa
+        if not df_v.empty: df_v['Movimento'] = '🟢 Venda'
+        if not df_c.empty: df_c['Movimento'] = '🔴 Despesa'
+        
+        # Junta as duas tabelas
+        df_fluxo = pd.concat([df_v, df_c], ignore_index=True)
+        
+        if not df_fluxo.empty and 'data' in df_fluxo.columns:
+            # Transforma a data em formato de tempo do pandas para extrair mês e ano
+            df_fluxo['Data_DT'] = pd.to_datetime(df_fluxo['data'], format='%d/%m/%Y', errors='coerce')
+            df_fluxo = df_fluxo.dropna(subset=['Data_DT']) # Remove erros
+            
+            # Cria colunas separadas de Mês e Ano para os filtros
+            df_fluxo['Mês'] = df_fluxo['Data_DT'].dt.strftime('%m')
+            df_fluxo['Ano'] = df_fluxo['Data_DT'].dt.strftime('%Y')
+            
+            st.subheader("Filtros")
+            col1, col2 = st.columns(2)
+            
+            # Pega todos os meses e anos que existem registrados no sistema
+            meses_disponiveis = sorted(df_fluxo['Mês'].unique())
+            anos_disponiveis = sorted(df_fluxo['Ano'].unique(), reverse=True)
+            
+            # Tenta definir o mês e ano atuais como padrão
+            mes_padrao = hoje_dt.strftime("%m")
+            ano_padrao = hoje_dt.strftime("%Y")
+            
+            idx_mes = meses_disponiveis.index(mes_padrao) if mes_padrao in meses_disponiveis else 0
+            idx_ano = anos_disponiveis.index(ano_padrao) if ano_padrao in anos_disponiveis else 0
+            
+            with col1:
+                filtro_mes = st.selectbox("Selecione o Mês", meses_disponiveis, index=idx_mes)
+            with col2:
+                filtro_ano = st.selectbox("Selecione o Ano", anos_disponiveis, index=idx_ano)
+                
+            # Filtra a tabela final com base no que você selecionou nas caixas
+            df_filtrado = df_fluxo[(df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)].copy()
+            
+            # Calcula os totais do período selecionado
+            tot_vendas = df_filtrado[df_filtrado['Movimento'] == '🟢 Venda']['valor'].sum()
+            tot_compras = df_filtrado[df_filtrado['Movimento'] == '🔴 Despesa']['valor'].sum()
+            saldo = tot_vendas - tot_compras
+            
+            # Exibe os cards financeiros
+            st.divider()
+            c1, c2, c3 = st.columns(3)
+            c1.metric("🟢 Total de Entradas", f"R$ {tot_vendas:,.2f}")
+            c2.metric("🔴 Total de Saídas", f"R$ {tot_compras:,.2f}")
+            c3.metric("💰 Saldo do Período", f"R$ {saldo:,.2f}")
+            
+            # Exibe a planilha
+            st.divider()
+            st.subheader(f"Registros de {filtro_mes}/{filtro_ano}")
+            
+            # Seleciona só as colunas que importam para mostrar na tela
+            colunas_mostrar = ['data', 'hora', 'Movimento', 'tipo', 'descricao', 'valor']
+            # Garante que não vai dar erro se faltar alguma coluna ("tipo" não existe nas compras)
+            colunas_mostrar = [c for c in colunas_mostrar if c in df_filtrado.columns]
+            
+            # Mostra a tabela organizada por data e hora (mais recentes primeiro)
+            st.dataframe(
+                df_filtrado[colunas_mostrar].sort_values(by=['data', 'hora'], ascending=[False, False]),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "data": "Data",
+                    "hora": "Hora",
+                    "tipo": "Tipo",
+                    "descricao": "Descrição",
+                    "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
+                }
+            )
+        else:
+            st.info("Nenhum registro encontrado no sistema ainda.")
+            
+    elif senha_digitada != "":
+        st.error("Senha incorreta.")
