@@ -320,7 +320,7 @@ elif menu == "🛠️ Editar":
 
 # ---------------- PÁGINA: BALANÇO MENSAL ----------------
 elif menu == "📊 Balanço":
-    st.title("📊 Balanço Financeiro Geral")
+    st.title("📊 Balanço Financeiro")
     
     senha_digitada = st.text_input("Senha de acesso gerencial:", type="password")
     
