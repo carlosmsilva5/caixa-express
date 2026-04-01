@@ -49,21 +49,37 @@ hoje = datetime.now()
 data_hoje_str = hoje.strftime("%d/%m/%Y")
 mes_atual_str = hoje.strftime("%m/%Y")
 
+def blindar_dataframe(df):
+    """Remove colunas duplicadas caso existam na planilha do Google"""
+    if not df.empty:
+        # Pega apenas as primeiras colunas que não têm nome repetido
+        df = df.loc[:, ~df.columns.duplicated()].copy()
+    return df
+
 def calcular_total_mes(df):
     """Soma todos os valores do mês atual para o painel lateral"""
-    if df.empty or 'data' not in df.columns: return 0.0
+    df = blindar_dataframe(df)
+    if df.empty or 'data' not in df.columns or 'valor' not in df.columns: 
+        return 0.0
+        
     df['data_dt'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce')
     mask = df['data_dt'].dt.strftime('%m/%Y') == mes_atual_str
-    return pd.to_numeric(df.loc[mask, 'valor'], errors='coerce').sum()
+    return pd.to_numeric(df.loc[mask, 'valor'], errors='coerce').fillna(0).sum()
 
 def filtrar_hoje(df):
     """Filtra a base para mostrar apenas as movimentações de hoje"""
-    if df.empty or 'data' not in df.columns: return pd.DataFrame(), 0.0
+    df = blindar_dataframe(df)
+    if df.empty or 'data' not in df.columns or 'valor' not in df.columns: 
+        return pd.DataFrame(), 0.0
+        
     df_hoje = df[df['data'] == data_hoje_str].copy()
-    total_hoje = pd.to_numeric(df_hoje['valor'], errors='coerce').sum()
+    total_hoje = pd.to_numeric(df_hoje['valor'], errors='coerce').fillna(0).sum()
     return df_hoje, total_hoje
 
-# Variáveis do mês para a barra lateral
+# Aplica a blindagem e calcula as variáveis do mês para a barra lateral
+df_vendas = blindar_dataframe(df_vendas)
+df_compras = blindar_dataframe(df_compras)
+
 vendas_mes = calcular_total_mes(df_vendas)
 compras_mes = calcular_total_mes(df_compras)
 saldo_mes = vendas_mes - compras_mes
