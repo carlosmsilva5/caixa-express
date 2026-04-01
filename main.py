@@ -104,7 +104,7 @@ with st.sidebar:
     st.markdown("### 📊 Balanço do Mês")
     senha_digitada = st.text_input("Senha de acesso:", type="password")
     
-    if senha_digitada == "admin123": 
+    if senha_digitada == "jana@2018": 
         st.write(f"Mês: {mes_atual_str}")
         st.markdown(f"🟢 **Entradas:** R$ {v_mes:,.2f}")
         st.markdown(f"🔴 **Saídas:** R$ {c_mes:,.2f}")
@@ -269,7 +269,7 @@ elif menu == "📊 Balanço":
     
     senha_digitada = st.text_input("Senha de acesso gerencial:", type="password")
     
-    if senha_digitada == "admin123":
+    if senha_digitada == "jana@2018":
         st.success("Acesso Liberado!")
         st.divider()
         
