@@ -59,21 +59,24 @@ def processar_financeiro(df):
     if 'valor' in df.columns:
         df['valor'] = pd.to_numeric(df['valor'], errors='coerce').fillna(0.0)
     
-    # Garante que 'data' seja string limpa
+    # Garante que 'data' seja string limpa e faz as somas
     if 'data' in df.columns:
         df['data'] = df['data'].astype(str).str.strip()
         
-    # Soma do Mês
-    try:
-        df['temp_data_dt'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce')
-        mask_mes = df['temp_data_dt'].dt.strftime('%m/%Y') == mes_atual_str
-        total_mes = df.loc[mask_mes, 'valor'].sum()
-    except:
+        # Soma do Mês
+        try:
+            df['temp_data_dt'] = pd.to_datetime(df['data'], format='%d/%m/%Y', errors='coerce')
+            mask_mes = df['temp_data_dt'].dt.strftime('%m/%Y') == mes_atual_str
+            total_mes = df.loc[mask_mes, 'valor'].sum()
+        except:
+            total_mes = 0.0
+            
+        # Soma de Hoje
+        total_hoje = df[df['data'] == data_hoje_str]['valor'].sum()
+    else:
         total_mes = 0.0
+        total_hoje = 0.0
         
-    # Soma de Hoje
-    total_hoje = df[df['data'] == data_hoje_str]['valor'].sum()
-    
     return df, total_hoje, total_mes
 
 # Processando os dados
@@ -122,7 +125,6 @@ if menu == "💰 Vendas":
     
     df_v_hoje = df_vendas[df_vendas['data'] == data_hoje_str]
     if not df_v_hoje.empty:
-        # --- AQUI ESTÁ A CORREÇÃO DA TABELA DE VENDAS ---
         st.dataframe(
             df_v_hoje[["data", "hora", "tipo", "descricao", "valor"]], 
             use_container_width=True, 
@@ -132,7 +134,7 @@ if menu == "💰 Vendas":
                 "hora": "Hora",
                 "tipo": "Tipo",
                 "descricao": "Descrição",
-                "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f") # Força o formato de moeda
+                "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
             }
         )
     else:
@@ -154,3 +156,20 @@ elif menu == "🛒 Compras":
     st.divider()
     st.subheader(f"📉 Despesas do Dia ({data_hoje_str})")
     st.markdown(f'<div class="card-red"><div class="title">Total Gasto Hoje</div><div class="value">R$ {c_hoje:,.2f}</div></div>', unsafe_allow_html=True)
+    
+    # --- BLOCO FINAL QUE ESTAVA FALTANDO ---
+    df_c_hoje = df_compras[df_compras['data'] == data_hoje_str]
+    if not df_c_hoje.empty:
+        st.dataframe(
+            df_c_hoje[["data", "hora", "descricao", "valor"]], 
+            use_container_width=True, 
+            hide_index=True,
+            column_config={
+                "data": "Data",
+                "hora": "Hora",
+                "descricao": "Descrição",
+                "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
+            }
+        )
+    else:
+        st.info("Nenhuma despesa registrada hoje.")
