@@ -191,51 +191,82 @@ elif menu == "🛒 Compras":
 # ---------------- PÁGINA: EDITAR ----------------
 elif menu == "🛠️ Editar":
     st.title("🛠️ Editar Registros")
+    
     categoria = st.selectbox("Selecione a categoria", ["Vendas", "Compras"])
     df_base = df_vendas if categoria == "Vendas" else df_compras
     nome_aba = "vendas" if categoria == "Vendas" else "compras"
 
     if not df_base.empty:
         st.subheader("🔍 Filtrar por Período")
+        
+        # Converte para datetime para extrair dia, mês e ano
         df_base['Data_DT'] = pd.to_datetime(df_base['data'], format='%d/%m/%Y', errors='coerce')
         df_base = df_base.dropna(subset=['Data_DT'])
+        
+        df_base['Dia'] = df_base['Data_DT'].dt.strftime('%d')
         df_base['Mês'] = df_base['Data_DT'].dt.strftime('%m')
         df_base['Ano'] = df_base['Data_DT'].dt.strftime('%Y')
         
-        col_m, col_a = st.columns(2)
-        with col_m:
-            mes_edit = st.selectbox("Mês", sorted(df_base['Mês'].unique()), index=0)
+        # Três colunas para os filtros
+        col_d, col_m, col_a = st.columns(3)
+        
         with col_a:
-            ano_edit = st.selectbox("Ano", sorted(df_base['Ano'].unique(), reverse=True), index=0)
+            lista_anos = sorted(df_base['Ano'].unique(), reverse=True)
+            ano_edit = st.selectbox("Ano", lista_anos, index=0)
+            
+        with col_m:
+            # Filtra meses disponíveis para o ano selecionado
+            meses_disp = sorted(df_base[df_base['Ano'] == ano_edit]['Mês'].unique())
+            mes_edit = st.selectbox("Mês", meses_disp, index=0)
+            
+        with col_d:
+            # Filtra dias disponíveis para o mês e ano selecionados
+            dias_disp = sorted(df_base[(df_base['Ano'] == ano_edit) & (df_base['Mês'] == mes_edit)]['Dia'].unique())
+            dia_edit = st.selectbox("Dia", dias_disp, index=0)
 
-        df_filtrado_edit = df_base[(df_base['Mês'] == mes_edit) & (df_base['Ano'] == ano_edit)].copy()
+        # Aplica o filtro final (Dia/Mês/Ano)
+        df_filtrado_edit = df_base[
+            (df_base['Dia'] == dia_edit) & 
+            (df_base['Mês'] == mes_edit) & 
+            (df_base['Ano'] == ano_edit)
+        ].copy()
 
         if not df_filtrado_edit.empty:
-            opcoes = [f"ID {i} | {row['data']} {row['hora']} | R$ {row['valor']:.2f} | {row['descricao']}" for i, row in df_filtrado_edit.iterrows()]
-            selecao = st.selectbox("Escolha o registro", opcoes)
+            st.divider()
+            opcoes = [f"ID {i} | {row['hora']} | R$ {row['valor']:.2f} | {row['descricao'][:30]}..." 
+                      for i, row in df_filtrado_edit.iterrows()]
+            
+            selecao = st.selectbox("Escolha o registro para alterar", opcoes)
             index_selecionado = int(selecao.split("ID ")[1].split(" |")[0])
             linha_atual = df_filtrado_edit.loc[index_selecionado]
 
             with st.form("form_edicao"):
                 st.subheader(f"Editando Registro ID {index_selecionado}")
+                
                 c1, c2 = st.columns(2)
-                with c1: nova_data = st.text_input("Data", value=linha_atual['data'])
+                with c1: nova_data = st.text_input("Data (dd/mm/aaaa)", value=linha_atual['data'])
                 with c2: nova_hora = st.text_input("Hora", value=linha_atual['hora'])
-                novo_valor = st.number_input("Valor (R$)", value=float(linha_atual['valor']), format="%.2f")
-                nova_desc = st.text_input("Descrição", value=linha_atual['descricao'])
+                
+                # Step de 10.0 adicionado aqui também
+                novo_valor = st.number_input("Valor (R$)", value=float(linha_atual['valor']), format="%.2f", step=10.0)
+                
+                # Text area para descrição na edição
+                nova_desc = st.text_area("Descrição", value=linha_atual['descricao'], height=100)
                 
                 if categoria == "Vendas":
                     ce1, ce2 = st.columns(2)
-                    with ce1: novo_tipo = st.selectbox("Canal", ["Presencial", "Online"], index=0 if linha_atual.get('tipo') == "Presencial" else 1)
+                    with ce1: 
+                        novo_tipo = st.selectbox("Canal", ["Presencial", "Online"], 
+                                                 index=0 if linha_atual.get('tipo') == "Presencial" else 1)
                     with ce2:
                         lista_pag = ["Pix", "Dinheiro", "Cartão"]
-                        val_atual = linha_atual.get('pagamento', 'Pix')
-                        idx_p = lista_pag.index(val_atual) if val_atual in lista_pag else 0
+                        val_p = linha_atual.get('pagamento', 'Pix')
+                        idx_p = lista_pag.index(val_p) if val_p in lista_pag else 0
                         novo_pag = st.selectbox("Pagamento", lista_pag, index=idx_p)
 
                 col_btn1, col_btn2 = st.columns(2)
-                with col_btn1: btn_salvar = st.form_submit_button("💾 Salvar")
-                with col_btn2: btn_excluir = st.form_submit_button("🗑️ Excluir")
+                with col_btn1: btn_salvar = st.form_submit_button("💾 Salvar Alterações")
+                with col_btn2: btn_excluir = st.form_submit_button("🗑️ Excluir Registro")
 
                 if btn_salvar:
                     df_base.at[index_selecionado, 'data'] = nova_data
@@ -245,20 +276,21 @@ elif menu == "🛠️ Editar":
                     if categoria == "Vendas":
                         df_base.at[index_selecionado, 'tipo'] = novo_tipo
                         df_base.at[index_selecionado, 'pagamento'] = novo_pag
-                    col_limpas = [c for c in df_base.columns if c not in ['Data_DT', 'Mês', 'Ano', 'temp_data_dt']]
+                    
+                    col_limpas = [c for c in df_base.columns if c not in ['Data_DT', 'Dia', 'Mês', 'Ano', 'temp_data_dt']]
                     update_sheet(nome_aba, df_base[col_limpas])
                     st.rerun()
 
                 if btn_excluir:
                     df_base = df_base.drop(index_selecionado)
-                    col_limpas = [c for c in df_base.columns if c not in ['Data_DT', 'Mês', 'Ano', 'temp_data_dt']]
+                    col_limpas = [c for c in df_base.columns if c not in ['Data_DT', 'Dia', 'Mês', 'Ano', 'temp_data_dt']]
                     update_sheet(nome_aba, df_base[col_limpas])
                     st.rerun()
         else:
-            st.warning("Nenhum registro encontrado.")
+            st.warning(f"Nenhum registro encontrado em {dia_edit}/{mes_edit}/{ano_edit}.")
     else:
-        st.info("Base vazia.")
-
+        st.info(f"A base de {categoria} está vazia.")
+  
     st.divider()
     with st.expander("🚨 Zona de Perigo"):
         senha_limpeza = st.text_input("Senha para APAGAR TUDO:", type="password", key="senha_limpeza_total")
