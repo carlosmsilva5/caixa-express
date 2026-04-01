@@ -187,7 +187,7 @@ elif menu == "🛒 Compras":
 
 # ---------------- PÁGINA: EDITAR ----------------
 elif menu == "🛠️ Editar":
-    st.title("🛠️ Editar ou Excluir Registros")
+    st.title("🛠️ Editar Registros")
     
     categoria = st.selectbox("Selecione a categoria", ["Vendas", "Compras"])
     df_selecionado = df_vendas if categoria == "Vendas" else df_compras
