@@ -309,7 +309,7 @@ elif menu == "🛠️ Editar":
         senha_limpeza = st.text_input(f"Senha para APAGAR TUDO de {categoria}:", type="password", key="senha_limpeza_total")
         
         if st.button(f"💥 Confirmar Exclusão TOTAL de {categoria}"):
-            if senha_limpeza == "admin123":
+            if senha_limpeza == "jana@2018":
                 colunas_vazio = [c for c in df_base.columns if c not in ['Data_DT', 'Mês', 'Ano', 'temp_data_dt']]
                 df_vazio = pd.DataFrame(columns=colunas_vazio)
                 update_sheet(nome_aba, df_vazio)
