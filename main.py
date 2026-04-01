@@ -93,10 +93,13 @@ df_compras, c_hoje, c_mes = processar_financeiro(df_compras)
 saldo_mes = v_mes - c_mes
 
 # ---------------- MENU LATERAL ----------------
+# ---------------- MENU LATERAL ----------------
 with st.sidebar:
     st.title("💸 Caixa Express")
-    menu = st.radio("Navegação", ["💰 Vendas", "🛒 Compras", "🛠️ Editar"])
+    # Adicionamos a opção Balanço no menu
+    menu = st.radio("Navegação", ["💰 Vendas", "🛒 Compras", "🛠️ Editar", "📊 Balanço"])
     st.divider()
+    st.info("Selecione 'Balanço' para ver o relatório completo e filtrar por mês/ano.")
     
     st.markdown("### 📊 Balanço do Mês")
     senha_digitada = st.text_input("Senha de acesso:", type="password")
@@ -247,6 +250,14 @@ elif menu == "🛠️ Editar":
                 
         st.divider()
         st.write("Tabela Completa para conferência:")
-        st.dataframe(df_selecionado, use_container_width=True)
-    else:
+        st.divider()
+        st.write("Tabela Completa para conferência:")
+        # Adicionada a formatação da coluna valor para R$
+        st.dataframe(
+            df_selecionado, 
+            use_container_width=True,
+            column_config={
+                "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
+            }
+        )
         st.info(f"Não há registros em {categoria} para editar.")
