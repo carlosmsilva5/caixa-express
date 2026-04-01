@@ -152,38 +152,60 @@ if menu == "💰 Vendas":
         st.info("Nenhuma venda hoje.")
 
 # ---------------- PÁGINA: COMPRAS ----------------
+# ---------------- PÁGINA: COMPRAS ----------------
 elif menu == "🛒 Compras":
-    st.title("Registrar Despesa")
-    with st.form("form_compra", clear_on_submit=True):
-        valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
-        descricao = st.text_input("Descrição (Opcional)")
-        
-        if st.form_submit_button("🛒 Confirmar Despesa"):
-            if valor > 0:
-                nova = pd.DataFrame([{"data": data_hoje_str, "hora": datetime.now().strftime("%H:%M:%S"), "descricao": descricao if descricao else "-", "valor": valor}])
-                save_data("compras", nova)
-                st.rerun()
-
-    st.divider()
-    st.subheader(f"📉 Despesas do Dia ({data_hoje_str})")
-    st.markdown(f'<div class="card-red"><div class="title">Total Gasto Hoje</div><div class="value">R$ {c_hoje:,.2f}</div></div>', unsafe_allow_html=True)
+    st.title("🛒 Gestão de Compras")
     
-    # --- BLOCO FINAL QUE ESTAVA FALTANDO ---
-    df_c_hoje = df_compras[df_compras['data'] == data_hoje_str]
-    if not df_c_hoje.empty:
-        st.dataframe(
-            df_c_hoje[["data", "hora", "descricao", "valor"]], 
-            use_container_width=True, 
-            hide_index=True,
-            column_config={
-                "data": "Data",
-                "hora": "Hora",
-                "descricao": "Descrição",
-                "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
-            }
-        )
+    # --- TRAVA DE ACESSO ---
+    senha_compras = st.text_input("Digite a senha para acessar Compras:", type="password", key="acesso_compras")
+    
+    if senha_compras == "jana@2018":
+        st.success("Acesso Liberado!")
+        st.divider()
+        
+        # FORMULÁRIO DE REGISTRO
+        st.subheader("Registrar Nova Despesa")
+        with st.form("form_compra", clear_on_submit=True):
+            valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
+            descricao = st.text_input("Descrição (Opcional)")
+            
+            if st.form_submit_button("🛒 Confirmar Despesa"):
+                if valor > 0:
+                    nova = pd.DataFrame([{
+                        "data": data_hoje_str, 
+                        "hora": datetime.now().strftime("%H:%M:%S"), 
+                        "descricao": descricao if descricao else "-", 
+                        "valor": valor
+                    }])
+                    save_data("compras", nova)
+                    st.rerun()
+
+        st.divider()
+        
+        # VISUALIZAÇÃO DO DIA
+        st.subheader(f"📉 Despesas do Dia ({data_hoje_str})")
+        st.markdown(f'<div class="card-red"><div class="title">Total Gasto Hoje</div><div class="value">R$ {c_hoje:,.2f}</div></div>', unsafe_allow_html=True)
+        
+        df_c_hoje = df_compras[df_compras['data'] == data_hoje_str]
+        if not df_c_hoje.empty:
+            st.dataframe(
+                df_c_hoje[["data", "hora", "descricao", "valor"]], 
+                use_container_width=True, 
+                hide_index=True,
+                column_config={
+                    "data": "Data",
+                    "hora": "Hora",
+                    "descricao": "Descrição",
+                    "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
+                }
+            )
+        else:
+            st.info("Nenhuma despesa registrada hoje.")
+            
+    elif senha_compras != "":
+        st.error("Senha incorreta. Acesso negado.")
     else:
-        st.info("Nenhuma despesa registrada hoje.")
+        st.info("Aba protegida. Insira a senha de administrador para continuar.")
 
 # ---------------- PÁGINA: EDITAR ----------------
 elif menu == "🛠️ Editar":
