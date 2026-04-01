@@ -104,11 +104,20 @@ with st.sidebar:
 if menu == "💰 Vendas":
     st.title("Registrar Venda")
     with st.form("form_venda", clear_on_submit=True):
+        # Primeira linha: Inputs menores
         col1, col2, col3 = st.columns(3)
-        with col1: tipo_venda = st.selectbox("Tipo", ["Presencial", "Online"])
-        with col2: forma_pagamento = st.selectbox("Pagamento", ["Cartão", "PIX", "Dinheiro"])
-        with col3: valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
-        descricao = st.text_input("Descrição Opcional (Nota Fiscal, Dados do Cliente, Itens Vendidos, Com Garantia, Com Prazo de Troca ou Item Sem Troca, etc.)")
+        with col1: 
+            tipo_venda = st.selectbox("Canal", ["Presencial", "Online"])
+        with col2: 
+            forma_pagamento = st.selectbox("Pagamento", ["Pix", "Dinheiro", "Cartão"])
+        with col3: 
+            valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
+            
+        # Segunda linha: Descrição maior e com quebra de texto
+        # Usamos columns([2, 1]) para a primeira coluna ser o dobro da segunda
+        col_desc, col_vazia = st.columns([2, 1]) 
+        with col_desc:
+            descricao = st.text_area("Descrição Detalhada", placeholder="Digite os detalhes da venda aqui...", height=100)
         
         if st.form_submit_button("💰 Confirmar Venda"):
             if valor > 0:
