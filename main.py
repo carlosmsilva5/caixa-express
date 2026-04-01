@@ -117,7 +117,7 @@ if menu == "💰 Vendas":
         # Usamos columns([2, 1]) para a primeira coluna ser o dobro da segunda
         col_desc, col_vazia = st.columns([2, 1]) 
         with col_desc:
-            descricao = st.text_area("Descrição Detalhada", placeholder="Digite os detalhes da venda aqui...", height=100)
+            descricao = st.text_area("Descrição Opcional", placeholder="Digite os detalhes da venda aqui...", height=100)
         
         if st.form_submit_button("💰 Confirmar Venda"):
             if valor > 0:
