@@ -109,7 +109,7 @@ if menu == "💰 Vendas":
         with col1: 
             tipo_venda = st.selectbox("Canal", ["Presencial", "Online"])
         with col2: 
-            forma_pagamento = st.selectbox("Pagamento", ["Pix", "Dinheiro", "Cartão"])
+            forma_pagamento = st.selectbox("Pagamento", ["Cartão", "Pix", "Dinheiro"])
         with col3: 
             valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
             
