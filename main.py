@@ -108,7 +108,7 @@ if menu == "💰 Vendas":
         with col1: tipo_venda = st.selectbox("Tipo", ["Presencial", "Online"])
         with col2: forma_pagamento = st.selectbox("Pagamento", ["Cartão", "PIX", "Dinheiro"])
         with col3: valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
-        descricao = st.text_input("Descrição Opcional (Teve Nota Fiscal, Nome ou Fone da Cliente, Itens Vendidos, Prazo de Garantia, Prazo de Troca ou Item Sem Troca)")
+        descricao = st.text_input("Descrição Opcional (Nota Fiscal, Dados do Cliente, Itens Vendidos, Com Garantia, Com Prazo de Troca ou Item Sem Troca, etc.)")
         
         if st.form_submit_button("💰 Confirmar Venda"):
             if valor > 0:
