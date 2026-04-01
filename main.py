@@ -187,103 +187,116 @@ elif menu == "🛒 Compras":
 
 # ---------------- PÁGINA: EDITAR ----------------
 elif menu == "🛠️ Editar":
-    st.title("🛠️ Editar Registros")
+    st.title("🛠️ Editar ou Excluir Registros")
     
+    # 1. Seleção de Categoria
     categoria = st.selectbox("Selecione a categoria", ["Vendas", "Compras"])
-    df_selecionado = df_vendas if categoria == "Vendas" else df_compras
+    df_base = df_vendas if categoria == "Vendas" else df_compras
     nome_aba = "vendas" if categoria == "Vendas" else "compras"
 
-    if not df_selecionado.empty:
-        st.write(f"Selecione o registro de {categoria} que deseja alterar:")
+    if not df_base.empty:
+        # --- NOVO: FILTRO DE MÊS E ANO PARA EDIÇÃO ---
+        st.subheader("🔍 Filtrar por Período")
         
-        # Criamos uma lista de opções para o selectbox mostrando Data, Hora e Valor
-        opcoes = [f"ID {i} | {row['data']} {row['hora']} | R$ {row['valor']:.2f}" 
-                  for i, row in df_selecionado.iterrows()]
+        # Garante que a coluna data está em formato datetime para filtrar
+        df_base['Data_DT'] = pd.to_datetime(df_base['data'], format='%d/%m/%Y', errors='coerce')
+        df_base = df_base.dropna(subset=['Data_DT'])
         
-        selecao = st.selectbox("Registro", opcoes)
-        index_selecionado = int(selecao.split("ID ")[1].split(" |")[0])
+        df_base['Mês'] = df_base['Data_DT'].dt.strftime('%m')
+        df_base['Ano'] = df_base['Data_DT'].dt.strftime('%Y')
         
-        # Carrega os dados atuais da linha selecionada
-        linha_atual = df_selecionado.loc[index_selecionado]
+        col_m, col_a = st.columns(2)
+        with col_m:
+            mes_edit = st.selectbox("Mês do registro", sorted(df_base['Mês'].unique()), 
+                                    index=sorted(df_base['Mês'].unique()).index(hoje_dt.strftime("%m")) if hoje_dt.strftime("%m") in df_base['Mês'].unique() else 0)
+        with col_a:
+            ano_edit = st.selectbox("Ano do registro", sorted(df_base['Ano'].unique(), reverse=True),
+                                    index=0)
 
-        with st.form("form_edicao"):
-            st.subheader(f"Editando Registro ID {index_selecionado}")
+        # Filtra o DataFrame com base na escolha do usuário
+        df_filtrado_edit = df_base[(df_base['Mês'] == mes_edit) & (df_base['Ano'] == ano_edit)].copy()
+
+        if not df_filtrado_edit.empty:
+            st.divider()
+            st.write(f"Selecione o registro de **{categoria}** de {mes_edit}/{ano_edit}:")
             
-            nova_data = st.text_input("Data", value=linha_atual['data'])
-            nova_hora = st.text_input("Hora", value=linha_atual['hora'])
-            novo_valor = st.number_input("Valor (R$)", value=float(linha_atual['valor']), format="%.2f")
-            nova_desc = st.text_input("Descrição", value=linha_atual['descricao'])
+            # 2. Seleção do Registro Específico (apenas os filtrados)
+            opcoes = [f"ID {i} | {row['data']} {row['hora']} | R$ {row['valor']:.2f} | {row['descricao']}" 
+                      for i, row in df_filtrado_edit.iterrows()]
             
-            if categoria == "Vendas":
-                novo_tipo = st.selectbox("Tipo", ["Presencial", "Online"], 
-                                         index=0 if linha_atual['tipo'] == "Presencial" else 1)
+            selecao = st.selectbox("Escolha o registro para alterar", opcoes)
+            index_selecionado = int(selecao.split("ID ")[1].split(" |")[0])
+            
+            linha_atual = df_filtrado_edit.loc[index_selecionado]
 
-            col1, col2 = st.columns(2)
-            with col1:
-                btn_salvar = st.form_submit_button("💾 Salvar Alterações")
-            with col2:
-                btn_excluir = st.form_submit_button("🗑️ Excluir Registro")
-
-            if btn_salvar:
-                # Atualiza o DataFrame local
-                df_selecionado.at[index_selecionado, 'data'] = nova_data
-                df_selecionado.at[index_selecionado, 'hora'] = nova_hora
-                df_selecionado.at[index_selecionado, 'valor'] = novo_valor
-                df_selecionado.at[index_selecionado, 'descricao'] = nova_desc
+            # 3. Formulário de Edição
+            with st.form("form_edicao"):
+                st.subheader(f"Editando Registro ID {index_selecionado}")
+                
+                c1, c2 = st.columns(2)
+                with c1: nova_data = st.text_input("Data", value=linha_atual['data'])
+                with c2: nova_hora = st.text_input("Hora", value=linha_atual['hora'])
+                
+                novo_valor = st.number_input("Valor (R$)", value=float(linha_atual['valor']), format="%.2f")
+                nova_desc = st.text_input("Descrição", value=linha_atual['descricao'])
+                
                 if categoria == "Vendas":
-                    df_selecionado.at[index_selecionado, 'tipo'] = novo_tipo
-                
-                # Remove colunas temporárias de cálculo antes de salvar
-                if 'temp_data_dt' in df_selecionado.columns:
-                    df_selecionado = df_selecionado.drop(columns=['temp_data_dt'])
-                
-                update_sheet(nome_aba, df_selecionado)
-                st.rerun()
+                    novo_tipo = st.selectbox("Tipo", ["Presencial", "Online"], 
+                                             index=0 if linha_atual['tipo'] == "Presencial" else 1)
 
-            if btn_excluir:
-                df_selecionado = df_selecionado.drop(index_selecionado)
-                if 'temp_data_dt' in df_selecionado.columns:
-                    df_selecionado = df_selecionado.drop(columns=['temp_data_dt'])
-                
-                update_sheet(nome_aba, df_selecionado)
-                st.rerun()
-                
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    btn_salvar = st.form_submit_button("💾 Salvar Alterações")
+                with col_btn2:
+                    btn_excluir = st.form_submit_button("🗑️ Excluir Registro")
+
+                if btn_salvar:
+                    # Aplicamos a mudança no DataFrame ORIGINAL (df_base) usando o índice real
+                    df_base.at[index_selecionado, 'data'] = nova_data
+                    df_base.at[index_selecionado, 'hora'] = nova_hora
+                    df_base.at[index_selecionado, 'valor'] = novo_valor
+                    df_base.at[index_selecionado, 'descricao'] = nova_desc
+                    if categoria == "Vendas":
+                        df_base.at[index_selecionado, 'tipo'] = novo_tipo
+                    
+                    # Limpa colunas temporárias antes de salvar no Google Sheets
+                    colunas_limpas = [c for c in df_base.columns if c not in ['Data_DT', 'Mês', 'Ano', 'temp_data_dt']]
+                    update_sheet(nome_aba, df_base[colunas_limpas])
+                    st.rerun()
+
+                if btn_excluir:
+                    df_base = df_base.drop(index_selecionado)
+                    colunas_limpas = [c for c in df_base.columns if c not in ['Data_DT', 'Mês', 'Ano', 'temp_data_dt']]
+                    update_sheet(nome_aba, df_base[colunas_limpas])
+                    st.rerun()
+        else:
+            st.warning(f"Nenhum registro de {categoria} encontrado em {mes_edit}/{ano_edit}.")
+            
         st.divider()
-        st.write("Tabela Completa para conferência:")
+        st.write("Visualização da tabela filtrada:")
         st.dataframe(
-            df_selecionado, 
+            df_filtrado_edit[[c for c in df_filtrado_edit.columns if c not in ['Data_DT', 'Mês', 'Ano', 'temp_data_dt']]], 
             use_container_width=True,
-            column_config={
-                "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
-            }
+            column_config={"valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")}
         )
     else:
-        st.info(f"Não há registros em {categoria} para editar.")
+        st.info(f"A base de {categoria} está totalmente vazia.")
 
-    # --- NOVO BLOCO: APAGAR TUDO (Posicionado corretamente) ---
+    # --- ZONA DE PERIGO (APAGAR TUDO) ---
     st.divider()
     with st.expander("🚨 Zona de Perigo: Apagar Todos os Registros"):
-        st.warning(f"Atenção! Esta ação é irreversível e apagará todos os dados de {categoria} na planilha do Google Sheets.")
+        st.error(f"CUIDADO: Isso apagará TODOS os registros de {categoria} da história, não apenas do mês filtrado!")
+        senha_limpeza = st.text_input(f"Senha para APAGAR TUDO de {categoria}:", type="password", key="senha_limpeza_total")
         
-        senha_limpeza = st.text_input(f"Digite a senha de administrador para APAGAR TUDO de {categoria}:", 
-                                      type="password", 
-                                      key="senha_limpeza_total")
-        
-        if st.button(f"💥 Confirmar Exclusão de Todas as {categoria}"):
-            if senha_limpeza == "jana@2018":
-                # Pega apenas as colunas originais (ignora as de cálculo)
-                colunas_originais = [c for c in df_selecionado.columns if c != 'temp_data_dt']
-                df_vazio = pd.DataFrame(columns=colunas_originais)
-                
-                # Envia o arquivo vazio para limpar a aba no Sheets
+        if st.button(f"💥 Confirmar Exclusão TOTAL de {categoria}"):
+            if senha_limpeza == "admin123":
+                colunas_vazio = [c for c in df_base.columns if c not in ['Data_DT', 'Mês', 'Ano', 'temp_data_dt']]
+                df_vazio = pd.DataFrame(columns=colunas_vazio)
                 update_sheet(nome_aba, df_vazio)
-                
-                st.success(f"Todos os registros de {categoria} foram apagados com sucesso!")
+                st.success("Limpeza concluída!")
                 st.rerun()
-            elif senha_limpeza == "":
-                st.info("Insira a senha para habilitar a exclusão.")
-            else:
-                st.error("Senha incorreta! Operação cancelada.")
+            elif senha_limpeza != "":
+                st.error("Senha incorreta!")
 
 # ---------------- PÁGINA: BALANÇO MENSAL ----------------
 elif menu == "📊 Balanço":
