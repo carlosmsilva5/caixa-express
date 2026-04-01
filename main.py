@@ -270,7 +270,7 @@ elif menu == "🛠️ Editar":
                                       key="senha_limpeza_total")
         
         if st.button(f"💥 Confirmar Exclusão de Todas as {categoria}"):
-            if senha_limpeza == "admin123":
+            if senha_limpeza == "jana@2018":
                 # Pega apenas as colunas originais (ignora as de cálculo)
                 colunas_originais = [c for c in df_selecionado.columns if c != 'temp_data_dt']
                 df_vazio = pd.DataFrame(columns=colunas_originais)
