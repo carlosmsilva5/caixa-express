@@ -122,7 +122,19 @@ if menu == "💰 Vendas":
     
     df_v_hoje = df_vendas[df_vendas['data'] == data_hoje_str]
     if not df_v_hoje.empty:
-        st.dataframe(df_v_hoje[["hora", "tipo", "descricao", "valor"]], use_container_width=True, hide_index=True)
+        # --- AQUI ESTÁ A CORREÇÃO DA TABELA DE VENDAS ---
+        st.dataframe(
+            df_v_hoje[["data", "hora", "tipo", "descricao", "valor"]], 
+            use_container_width=True, 
+            hide_index=True,
+            column_config={
+                "data": "Data",
+                "hora": "Hora",
+                "tipo": "Tipo",
+                "descricao": "Descrição",
+                "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f") # Força o formato de moeda
+            }
+        )
     else:
         st.info("Nenhuma venda hoje.")
 
@@ -142,7 +154,3 @@ elif menu == "🛒 Compras":
     st.divider()
     st.subheader(f"📉 Despesas do Dia ({data_hoje_str})")
     st.markdown(f'<div class="card-red"><div class="title">Total Gasto Hoje</div><div class="value">R$ {c_hoje:,.2f}</div></div>', unsafe_allow_html=True)
-    
-    df_c_hoje = df_compras[df_compras['data'] == data_hoje_str]
-    if not df_c_hoje.empty:
-        st.dataframe(df_c_hoje[["hora", "descricao", "valor"]], use_container_width=True, hide_index=True)
