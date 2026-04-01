@@ -187,7 +187,7 @@ elif menu == "🛒 Compras":
 
 # ---------------- PÁGINA: EDITAR ----------------
 elif menu == "🛠️ Editar":
-    st.title("🛠️ Editar ou Excluir Registros")
+    st.title("🛠️ Editar Registros")
     
     # 1. Seleção de Categoria
     categoria = st.selectbox("Selecione a categoria", ["Vendas", "Compras"])
