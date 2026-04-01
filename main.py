@@ -263,14 +263,14 @@ elif menu == "🛠️ Editar":
     else: # <-- Este else também é necessário!
         st.info(f"Não há registros em {categoria} para editar.")
 
-        # --- NOVO BLOCO: APAGAR TUDO ---
+# --- NOVO BLOCO: APAGAR TUDO ---
         st.divider()
         with st.expander("🚨 Zona de Perigo: Apagar Todos os Registros"):
             st.warning(f"Atenção! Esta ação é irreversível e apagará todos os dados de {categoria} na planilha.")
             
             senha_limpeza = st.text_input(f"Digite a senha de administrador para APAGAR TUDO de {categoria}:", 
-                                          type="password", 
-                                          key="senha_limpeza_total")
+             type="password", 
+            key="senha_limpeza_total")
             
             if st.button(f"💥 Confirmar Exclusão de Todas as {categoria}"):
                 # Usando a mesma senha do sistema 'admin123'
