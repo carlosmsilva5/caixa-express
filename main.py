@@ -111,7 +111,7 @@ if menu == "💰 Vendas":
         with col2: 
             forma_pagamento = st.selectbox("Pagamento", ["Cartão", "Pix", "Dinheiro"])
         with col3: 
-            valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
+            valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f", step=10.0)
             
         # Segunda linha: Descrição maior e com quebra de texto
         # Usamos columns([2, 1]) para a primeira coluna ser o dobro da segunda
