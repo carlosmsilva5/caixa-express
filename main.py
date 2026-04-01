@@ -259,5 +259,5 @@ elif menu == "🛠️ Editar":
             column_config={
                 "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
             }
-        )
+        
         st.info(f"Não há registros em {categoria} para editar.")
