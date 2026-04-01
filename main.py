@@ -250,45 +250,40 @@ elif menu == "🛠️ Editar":
                 
         st.divider()
         st.write("Tabela Completa para conferência:")
-        
-        # AQUI ESTÁ A CORREÇÃO (parêntese fechado e identação certa)
         st.dataframe(
             df_selecionado, 
             use_container_width=True,
             column_config={
                 "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
             }
-        ) # <-- Este parêntese estava faltando!
-        
-    else: # <-- Este else também é necessário!
+        )
+    else:
         st.info(f"Não há registros em {categoria} para editar.")
 
-# --- NOVO BLOCO: APAGAR TUDO ---
-        st.divider()
-        with st.expander("🚨 Zona de Perigo: Apagar Todos os Registros"):
-            st.warning(f"Atenção! Esta ação é irreversível e apagará todos os dados de {categoria} na planilha.")
-            
-            senha_limpeza = st.text_input(f"Digite a senha de administrador para APAGAR TUDO de {categoria}:", 
-             type="password", 
-            key="senha_limpeza_total")
-            
-            if st.button(f"💥 Confirmar Exclusão de Todas as {categoria}"):
-                # Usando a mesma senha do sistema 'admin123'
-                if senha_limpeza == "admin123":
-                    # Cria um DataFrame vazio mantendo apenas os nomes das colunas originais
-                    # Removemos colunas de cálculo temporário se existirem
-                    colunas_originais = [c for c in df_selecionado.columns if c != 'temp_data_dt']
-                    df_vazio = pd.DataFrame(columns=colunas_originais)
-                    
-                    # Chama a função para atualizar a planilha com os dados vazios
-                    update_sheet(nome_aba, df_vazio)
-                    
-                    st.success(f"Todos os registros de {categoria} foram apagados!")
-                    st.rerun()
-                elif senha_limpeza == "":
-                    st.info("Insira a senha para habilitar a exclusão.")
-                else:
-                    st.error("Senha incorreta! Operação cancelada.")
+    # --- NOVO BLOCO: APAGAR TUDO (Posicionado corretamente) ---
+    st.divider()
+    with st.expander("🚨 Zona de Perigo: Apagar Todos os Registros"):
+        st.warning(f"Atenção! Esta ação é irreversível e apagará todos os dados de {categoria} na planilha do Google Sheets.")
+        
+        senha_limpeza = st.text_input(f"Digite a senha de administrador para APAGAR TUDO de {categoria}:", 
+                                      type="password", 
+                                      key="senha_limpeza_total")
+        
+        if st.button(f"💥 Confirmar Exclusão de Todas as {categoria}"):
+            if senha_limpeza == "admin123":
+                # Pega apenas as colunas originais (ignora as de cálculo)
+                colunas_originais = [c for c in df_selecionado.columns if c != 'temp_data_dt']
+                df_vazio = pd.DataFrame(columns=colunas_originais)
+                
+                # Envia o arquivo vazio para limpar a aba no Sheets
+                update_sheet(nome_aba, df_vazio)
+                
+                st.success(f"Todos os registros de {categoria} foram apagados com sucesso!")
+                st.rerun()
+            elif senha_limpeza == "":
+                st.info("Insira a senha para habilitar a exclusão.")
+            else:
+                st.error("Senha incorreta! Operação cancelada.")
 
 # ---------------- PÁGINA: BALANÇO MENSAL ----------------
 elif menu == "📊 Balanço":
