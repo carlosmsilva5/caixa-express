@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
+import pytz  # Adicione esta linha
 
 # ---------------- CONFIGURAÇÃO INICIAL ----------------
 st.set_page_config(layout="wide", page_title="Caixa Express", page_icon="💸")
@@ -55,7 +56,9 @@ df_vendas = load_data("vendas")
 df_compras = load_data("compras")
 
 # ---------------- LÓGICA DE DATAS E CÁLCULOS ----------------
-hoje_dt = datetime.now()
+# --- AJUSTE DE FUSO HORÁRIO ---
+fuso_br = pytz.timezone('America/Sao_Paulo')
+hoje_dt = datetime.now(fuso_br) # Pega a hora exata de Brasília
 data_hoje_str = hoje_dt.strftime("%d/%m/%Y")
 mes_atual_str = hoje_dt.strftime("%m/%Y")
 
@@ -126,7 +129,7 @@ if menu == "💰 Vendas":
         
         if st.form_submit_button("💰 Confirmar Venda"):
             if valor > 0:
-                nova = pd.DataFrame([{"data": data_hoje_str, "hora": datetime.now().strftime("%H:%M:%S"), "tipo": tipo_venda, "descricao": descricao if descricao else "-", "valor": valor}])
+                nova = pd.DataFrame([{"data": data_hoje_str, "hora": "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), "tipo": tipo_venda, "descricao": descricao if descricao else "-", "valor": valor}])
                 save_data("vendas", nova)
                 st.rerun()
 
@@ -173,7 +176,7 @@ elif menu == "🛒 Compras":
                 if valor > 0:
                     nova = pd.DataFrame([{
                         "data": data_hoje_str, 
-                        "hora": datetime.now().strftime("%H:%M:%S"), 
+                        "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
                         "descricao": descricao if descricao else "-", 
                         "valor": valor
                     }])
