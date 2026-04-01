@@ -129,7 +129,7 @@ if menu == "💰 Vendas":
         
         if st.form_submit_button("💰 Confirmar Venda"):
             if valor > 0:
-                nova = pd.DataFrame([{"data": data_hoje_str, "hora": "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), "tipo": tipo_venda, "descricao": descricao if descricao else "-", "valor": valor}])
+                nova = pd.DataFrame([{"data": data_hoje_str, "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), "tipo": tipo_venda, "descricao": descricao if descricao else "-", "valor": valor}])
                 save_data("vendas", nova)
                 st.rerun()
 
@@ -174,12 +174,7 @@ elif menu == "🛒 Compras":
             
             if st.form_submit_button("🛒 Confirmar Despesa"):
                 if valor > 0:
-                    nova = pd.DataFrame([{
-                        "data": data_hoje_str, 
-                        "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
-                        "descricao": descricao if descricao else "-", 
-                        "valor": valor
-                    }])
+                    nova = pd.DataFrame([{"data": data_hoje_str, "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), "descricao": descricao if descricao else "-", "valor": valor}])
                     save_data("compras", nova)
                     st.rerun()
 
