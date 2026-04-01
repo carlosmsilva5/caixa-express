@@ -42,6 +42,14 @@ def save_data(sheet, df_new):
     except Exception as e:
         st.error(f"Erro ao salvar: {e}")
 
+def update_sheet(sheet, df_completo):
+    try:
+        conn.update(worksheet=sheet, data=df_completo)
+        st.cache_data.clear()
+        st.success("Registro atualizado com sucesso!")
+    except Exception as e:
+        st.error(f"Erro ao atualizar: {e}")
+
 # ---------------- CARREGANDO AS BASES ----------------
 df_vendas = load_data("vendas")
 df_compras = load_data("compras")
@@ -87,7 +95,7 @@ saldo_mes = v_mes - c_mes
 # ---------------- MENU LATERAL ----------------
 with st.sidebar:
     st.title("💸 Caixa Express")
-    menu = st.radio("Navegação", ["💰 Vendas", "🛒 Compras"])
+    menu = st.radio("Navegação", ["💰 Vendas", "🛒 Compras", "🛠️ Editar"])
     st.divider()
     
     st.markdown("### 📊 Balanço do Mês")
@@ -173,3 +181,72 @@ elif menu == "🛒 Compras":
         )
     else:
         st.info("Nenhuma despesa registrada hoje.")
+
+# ---------------- PÁGINA: EDITAR ----------------
+elif menu == "🛠️ Editar":
+    st.title("🛠️ Editar ou Excluir Registros")
+    
+    categoria = st.selectbox("Selecione a categoria", ["Vendas", "Compras"])
+    df_selecionado = df_vendas if categoria == "Vendas" else df_compras
+    nome_aba = "vendas" if categoria == "Vendas" else "compras"
+
+    if not df_selecionado.empty:
+        st.write(f"Selecione o registro de {categoria} que deseja alterar:")
+        
+        # Criamos uma lista de opções para o selectbox mostrando Data, Hora e Valor
+        opcoes = [f"ID {i} | {row['data']} {row['hora']} | R$ {row['valor']:.2f}" 
+                  for i, row in df_selecionado.iterrows()]
+        
+        selecao = st.selectbox("Registro", opcoes)
+        index_selecionado = int(selecao.split("ID ")[1].split(" |")[0])
+        
+        # Carrega os dados atuais da linha selecionada
+        linha_atual = df_selecionado.loc[index_selecionado]
+
+        with st.form("form_edicao"):
+            st.subheader(f"Editando Registro ID {index_selecionado}")
+            
+            nova_data = st.text_input("Data", value=linha_atual['data'])
+            nova_hora = st.text_input("Hora", value=linha_atual['hora'])
+            novo_valor = st.number_input("Valor (R$)", value=float(linha_atual['valor']), format="%.2f")
+            nova_desc = st.text_input("Descrição", value=linha_atual['descricao'])
+            
+            if categoria == "Vendas":
+                novo_tipo = st.selectbox("Tipo", ["Presencial", "Online"], 
+                                         index=0 if linha_atual['tipo'] == "Presencial" else 1)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                btn_salvar = st.form_submit_button("💾 Salvar Alterações")
+            with col2:
+                btn_excluir = st.form_submit_button("🗑️ Excluir Registro")
+
+            if btn_salvar:
+                # Atualiza o DataFrame local
+                df_selecionado.at[index_selecionado, 'data'] = nova_data
+                df_selecionado.at[index_selecionado, 'hora'] = nova_hora
+                df_selecionado.at[index_selecionado, 'valor'] = novo_valor
+                df_selecionado.at[index_selecionado, 'descricao'] = nova_desc
+                if categoria == "Vendas":
+                    df_selecionado.at[index_selecionado, 'tipo'] = novo_tipo
+                
+                # Remove colunas temporárias de cálculo antes de salvar
+                if 'temp_data_dt' in df_selecionado.columns:
+                    df_selecionado = df_selecionado.drop(columns=['temp_data_dt'])
+                
+                update_sheet(nome_aba, df_selecionado)
+                st.rerun()
+
+            if btn_excluir:
+                df_selecionado = df_selecionado.drop(index_selecionado)
+                if 'temp_data_dt' in df_selecionado.columns:
+                    df_selecionado = df_selecionado.drop(columns=['temp_data_dt'])
+                
+                update_sheet(nome_aba, df_selecionado)
+                st.rerun()
+                
+        st.divider()
+        st.write("Tabela Completa para conferência:")
+        st.dataframe(df_selecionado, use_container_width=True)
+    else:
+        st.info(f"Não há registros em {categoria} para editar.")
