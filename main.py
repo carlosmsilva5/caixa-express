@@ -95,7 +95,7 @@ saldo_mes = v_mes - c_mes
 # ---------------- MENU LATERAL ----------------
 # ---------------- MENU LATERAL ----------------
 with st.sidebar:
-    st.title("💸 Caixa Express")
+    st.title("💸 Pegue Jeans")
     # Adicionamos a opção Balanço no menu
     menu = st.radio("Navegação", ["💰 Vendas", "🛒 Compras", "🛠️ Editar", "📊 Balanço"])
     st.divider()
@@ -117,7 +117,7 @@ with st.sidebar:
 
 # ---------------- PÁGINA: VENDAS ----------------
 if menu == "💰 Vendas":
-    st.title("Registrar Nova Venda")
+    st.title("Registrar Venda")
     with st.form("form_venda", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1: tipo_venda = st.selectbox("Tipo", ["Presencial", "Online"])
