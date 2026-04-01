@@ -109,7 +109,7 @@ if menu == "💰 Vendas":
     st.title("Registrar Nova Venda")
     with st.form("form_venda", clear_on_submit=True):
         col1, col2 = st.columns(2)
-        with col1: tipo_venda = st.radio("Tipo", ["Presencial", "Online"], horizontal=True)
+        with col1: tipo_venda = st.selectbox("Tipo", ["Presencial", "Online"])
         with col2: valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
         descricao = st.text_input("Descrição (Opcional)")
         
