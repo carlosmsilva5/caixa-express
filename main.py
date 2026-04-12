@@ -107,7 +107,7 @@ if menu == "💰 Vendas":
     with st.form("form_venda", clear_on_submit=True):
         col1, col2, col3, col4 = st.columns(4)
         with col1: 
-            venda_data = st.date_input("Data da Venda", hoje_dt) # Novo Campo de Data
+            venda_data = st.date_input("Data da Venda", hoje_dt, format="DD/MM/YYYY") # Novo Campo de Data
         with col2: 
             tipo_venda = st.selectbox("Canal", ["Presencial", "Online"])
         with col3: 
@@ -158,11 +158,13 @@ elif menu == "💸 Despesas":
         st.divider()
         st.subheader("Registrar Nova Despesa")
         with st.form("form_compra", clear_on_submit=True):
-            col_c1, col_c2 = st.columns(2)
+            col_c1, col_c2, col_c3 = st.columns(3) # Dividi em 3 colunas
             with col_c1:
-                valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
+                # NOVO: Campo de data para despesas
+                despesa_data = st.date_input("Data da Despesa", hoje_dt, format="DD/MM/YYYY")
             with col_c2:
-                # Novo campo: Tipo de Despesa
+                valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
+            with col_c3:
                 tipo_despesa = st.selectbox("Tipo de Despesa", ["Roupas", "Salários Colaboradores", "Aluguel", "Luz", "Água", "Internet", "Outras"])
             
             descricao = st.text_input("Descrição (Opcional)")
@@ -170,9 +172,9 @@ elif menu == "💸 Despesas":
             if st.form_submit_button("💸 Confirmar Despesa"):
                 if valor > 0:
                     nova = pd.DataFrame([{
-                        "data": data_hoje_str, 
+                        "data": despesa_data.strftime("%d/%m/%Y"), # Salva a data selecionada
                         "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
-                        "tipo": tipo_despesa, # Salvando o tipo
+                        "tipo": tipo_despesa, 
                         "descricao": descricao if descricao else "-", 
                         "valor": valor
                     }])
