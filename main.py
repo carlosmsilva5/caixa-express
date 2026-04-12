@@ -51,7 +51,7 @@ def update_sheet(sheet, df_completo):
 
 # ---------------- CARREGANDO AS BASES ----------------
 df_vendas = load_data("vendas")
-df_compras = load_data("compras")
+df_compras = load_data("compras") # Mantido nome interno para conexão
 
 # ---------------- LÓGICA DE DATAS E CÁLCULOS ----------------
 fuso_br = pytz.timezone('America/Sao_Paulo')
@@ -84,7 +84,8 @@ saldo_mes = v_mes - c_mes
 # ---------------- MENU LATERAL ----------------
 with st.sidebar:
     st.title("💸 Pegue Jeans")
-    menu = st.radio("Navegação", ["💰 Vendas", "🛒 Compras", "🛠️ Editar", "📊 Balanço"])
+    # Trocado de "Compras" para "Despesas"
+    menu = st.radio("Navegação", ["💰 Vendas", "💸 Despesas", "🛠️ Editar", "📊 Balanço"])
     st.divider()
     st.info("Selecione 'Balanço' para ver o relatório completo e filtrar por mês/ano.")
     st.markdown("### 📊 Balanço do Mês")
@@ -104,17 +105,16 @@ with st.sidebar:
 if menu == "💰 Vendas":
     st.title("Registrar Venda")
     with st.form("form_venda", clear_on_submit=True):
-        # Primeira linha: Inputs menores
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1: 
-            tipo_venda = st.selectbox("Canal", ["Presencial", "Online"])
+            venda_data = st.date_input("Data da Venda", hoje_dt) # Novo Campo de Data
         with col2: 
-            forma_pagamento = st.selectbox("Pagamento", ["Cartão", "Pix", "Dinheiro"])
+            tipo_venda = st.selectbox("Canal", ["Presencial", "Online"])
         with col3: 
+            forma_pagamento = st.selectbox("Pagamento", ["Cartão", "Pix", "Dinheiro"])
+        with col4: 
             valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f", step=10.0)
             
-        # Segunda linha: Descrição maior e com quebra de texto
-        # Usamos columns([2, 1]) para a primeira coluna ser o dobro da segunda
         col_desc, col_vazia = st.columns([2, 1]) 
         with col_desc:
             descricao = st.text_area("Descrição Opcional", placeholder="Digite os detalhes da venda aqui...", height=100)
@@ -122,7 +122,7 @@ if menu == "💰 Vendas":
         if st.form_submit_button("💰 Confirmar Venda"):
             if valor > 0:
                 nova = pd.DataFrame([{
-                    "data": data_hoje_str, 
+                    "data": venda_data.strftime("%d/%m/%Y"), # Usa a data selecionada
                     "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
                     "tipo": tipo_venda, 
                     "pagamento": forma_pagamento,
@@ -138,37 +138,44 @@ if menu == "💰 Vendas":
     
     df_v_hoje = df_vendas[df_vendas['data'] == data_hoje_str]
     if not df_v_hoje.empty:
-        # Garante que a coluna 'pagamento' exista para exibição, mesmo em registros antigos
         colunas_exibir = ["data", "hora", "tipo", "pagamento", "descricao", "valor"]
         exibir_df = df_v_hoje[[c for c in colunas_exibir if c in df_v_hoje.columns]]
-        
-        st.dataframe(
-            exibir_df, 
-            use_container_width=True, 
-            hide_index=True,
+        st.dataframe(exibir_df, use_container_width=True, hide_index=True,
             column_config={
                 "data": "Data", "hora": "Hora", "tipo": "Canal", 
                 "pagamento": "Pagamento", "descricao": "Descrição",
                 "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")
-            }
-        )
+            })
     else:
         st.info("Nenhuma venda hoje.")
 
-# ---------------- PÁGINA: COMPRAS ----------------
-elif menu == "🛒 Compras":
-    st.title("🛒 Gestão de Compras")
-    senha_compras = st.text_input("Digite a senha para acessar Compras:", type="password", key="acesso_compras")
+# ---------------- PÁGINA: DESPESAS (ANTIGA COMPRAS) ----------------
+elif menu == "💸 Despesas":
+    st.title("💸 Gestão de Despesas")
+    senha_compras = st.text_input("Digite a senha para acessar Despesas:", type="password", key="acesso_compras")
     if senha_compras == "jana@2018":
         st.success("Acesso Liberado!")
         st.divider()
         st.subheader("Registrar Nova Despesa")
         with st.form("form_compra", clear_on_submit=True):
-            valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
+            col_c1, col_c2 = st.columns(2)
+            with col_c1:
+                valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
+            with col_c2:
+                # Novo campo: Tipo de Despesa
+                tipo_despesa = st.selectbox("Tipo de Despesa", ["Roupas", "Salários Colaboradores", "Aluguel", "Luz", "Água", "Internet", "Outras"])
+            
             descricao = st.text_input("Descrição (Opcional)")
-            if st.form_submit_button("🛒 Confirmar Despesa"):
+            
+            if st.form_submit_button("💸 Confirmar Despesa"):
                 if valor > 0:
-                    nova = pd.DataFrame([{"data": data_hoje_str, "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), "descricao": descricao if descricao else "-", "valor": valor}])
+                    nova = pd.DataFrame([{
+                        "data": data_hoje_str, 
+                        "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
+                        "tipo": tipo_despesa, # Salvando o tipo
+                        "descricao": descricao if descricao else "-", 
+                        "valor": valor
+                    }])
                     save_data("compras", nova)
                     st.rerun()
         st.divider()
@@ -177,9 +184,9 @@ elif menu == "🛒 Compras":
         df_c_hoje = df_compras[df_compras['data'] == data_hoje_str]
         if not df_c_hoje.empty:
             st.dataframe(
-                df_c_hoje[["data", "hora", "descricao", "valor"]], 
+                df_c_hoje[["data", "hora", "tipo", "descricao", "valor"]] if "tipo" in df_c_hoje.columns else df_c_hoje[["data", "hora", "descricao", "valor"]], 
                 use_container_width=True, hide_index=True,
-                column_config={"data": "Data", "hora": "Hora", "descricao": "Descrição", "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")}
+                column_config={"data": "Data", "hora": "Hora", "tipo": "Tipo", "descricao": "Descrição", "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")}
             )
         else:
             st.info("Nenhuma despesa registrada hoje.")
@@ -191,78 +198,59 @@ elif menu == "🛒 Compras":
 # ---------------- PÁGINA: EDITAR ----------------
 elif menu == "🛠️ Editar":
     st.title("🛠️ Editar Registros")
-    
-    categoria = st.selectbox("Selecione a categoria", ["Vendas", "Compras"])
+    categoria = st.selectbox("Selecione a categoria", ["Vendas", "Despesas"])
     df_base = df_vendas if categoria == "Vendas" else df_compras
     nome_aba = "vendas" if categoria == "Vendas" else "compras"
 
     if not df_base.empty:
         st.subheader("🔍 Filtrar por Período")
-        
-        # Converte para datetime para extrair dia, mês e ano
         df_base['Data_DT'] = pd.to_datetime(df_base['data'], format='%d/%m/%Y', errors='coerce')
         df_base = df_base.dropna(subset=['Data_DT'])
-        
         df_base['Dia'] = df_base['Data_DT'].dt.strftime('%d')
         df_base['Mês'] = df_base['Data_DT'].dt.strftime('%m')
         df_base['Ano'] = df_base['Data_DT'].dt.strftime('%Y')
         
-        # Três colunas para os filtros
         col_d, col_m, col_a = st.columns(3)
-        
         with col_a:
             lista_anos = sorted(df_base['Ano'].unique(), reverse=True)
             ano_edit = st.selectbox("Ano", lista_anos, index=0)
-            
         with col_m:
-            # Filtra meses disponíveis para o ano selecionado
             meses_disp = sorted(df_base[df_base['Ano'] == ano_edit]['Mês'].unique())
             mes_edit = st.selectbox("Mês", meses_disp, index=0)
-            
         with col_d:
-            # Filtra dias disponíveis para o mês e ano selecionados
             dias_disp = sorted(df_base[(df_base['Ano'] == ano_edit) & (df_base['Mês'] == mes_edit)]['Dia'].unique())
             dia_edit = st.selectbox("Dia", dias_disp, index=0)
 
-        # Aplica o filtro final (Dia/Mês/Ano)
-        df_filtrado_edit = df_base[
-            (df_base['Dia'] == dia_edit) & 
-            (df_base['Mês'] == mes_edit) & 
-            (df_base['Ano'] == ano_edit)
-        ].copy()
+        df_filtrado_edit = df_base[(df_base['Dia'] == dia_edit) & (df_base['Mês'] == mes_edit) & (df_base['Ano'] == ano_edit)].copy()
 
         if not df_filtrado_edit.empty:
             st.divider()
-            opcoes = [f"ID {i} | {row['hora']} | R$ {row['valor']:.2f} | {row['descricao'][:30]}..." 
-                      for i, row in df_filtrado_edit.iterrows()]
-            
+            opcoes = [f"ID {i} | {row['hora']} | R$ {row['valor']:.2f} | {row['descricao'][:30]}..." for i, row in df_filtrado_edit.iterrows()]
             selecao = st.selectbox("Escolha o registro para alterar", opcoes)
             index_selecionado = int(selecao.split("ID ")[1].split(" |")[0])
             linha_atual = df_filtrado_edit.loc[index_selecionado]
 
             with st.form("form_edicao"):
                 st.subheader(f"Editando Registro ID {index_selecionado}")
-                
                 c1, c2 = st.columns(2)
                 with c1: nova_data = st.text_input("Data (dd/mm/aaaa)", value=linha_atual['data'])
                 with c2: nova_hora = st.text_input("Hora", value=linha_atual['hora'])
-                
-                # Step de 10.0 adicionado aqui também
                 novo_valor = st.number_input("Valor (R$)", value=float(linha_atual['valor']), format="%.2f", step=10.0)
-                
-                # Text area para descrição na edição
                 nova_desc = st.text_area("Descrição", value=linha_atual['descricao'], height=100)
                 
                 if categoria == "Vendas":
                     ce1, ce2 = st.columns(2)
-                    with ce1: 
-                        novo_tipo = st.selectbox("Canal", ["Presencial", "Online"], 
-                                                 index=0 if linha_atual.get('tipo') == "Presencial" else 1)
+                    with ce1: novo_canal = st.selectbox("Canal", ["Presencial", "Online"], index=0 if linha_atual.get('tipo') == "Presencial" else 1)
                     with ce2:
                         lista_pag = ["Pix", "Dinheiro", "Cartão"]
                         val_p = linha_atual.get('pagamento', 'Pix')
                         idx_p = lista_pag.index(val_p) if val_p in lista_pag else 0
                         novo_pag = st.selectbox("Pagamento", lista_pag, index=idx_p)
+                else:
+                    lista_cat = ["Roupas", "Salários Colaboradores", "Aluguel", "Luz", "Água", "Internet", "Outras"]
+                    cat_atual = linha_atual.get('tipo', 'Outras')
+                    idx_c = lista_cat.index(cat_atual) if cat_atual in lista_cat else 0
+                    novo_tipo_desp = st.selectbox("Tipo de Despesa", lista_cat, index=idx_c)
 
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1: btn_salvar = st.form_submit_button("💾 Salvar Alterações")
@@ -274,8 +262,10 @@ elif menu == "🛠️ Editar":
                     df_base.at[index_selecionado, 'valor'] = novo_valor
                     df_base.at[index_selecionado, 'descricao'] = nova_desc
                     if categoria == "Vendas":
-                        df_base.at[index_selecionado, 'tipo'] = novo_tipo
+                        df_base.at[index_selecionado, 'tipo'] = novo_canal
                         df_base.at[index_selecionado, 'pagamento'] = novo_pag
+                    else:
+                        df_base.at[index_selecionado, 'tipo'] = novo_tipo_desp
                     
                     col_limpas = [c for c in df_base.columns if c not in ['Data_DT', 'Dia', 'Mês', 'Ano', 'temp_data_dt']]
                     update_sheet(nome_aba, df_base[col_limpas])
@@ -287,18 +277,9 @@ elif menu == "🛠️ Editar":
                     update_sheet(nome_aba, df_base[col_limpas])
                     st.rerun()
         else:
-            st.warning(f"Nenhum registro encontrado em {dia_edit}/{mes_edit}/{ano_edit}.")
+            st.warning("Nenhum registro encontrado.")
     else:
         st.info(f"A base de {categoria} está vazia.")
-  
-    st.divider()
-    with st.expander("🚨 Zona de Perigo"):
-        senha_limpeza = st.text_input("Senha para APAGAR TUDO:", type="password", key="senha_limpeza_total")
-        if st.button("💥 Confirmar Exclusão TOTAL"):
-            if senha_limpeza == "jana@2018":
-                df_vazio = pd.DataFrame(columns=[c for c in df_base.columns if c not in ['Data_DT', 'Mês', 'Ano', 'temp_data_dt']])
-                update_sheet(nome_aba, df_vazio)
-                st.rerun()
 
 # ---------------- PÁGINA: BALANÇO ----------------
 elif menu == "📊 Balanço":
