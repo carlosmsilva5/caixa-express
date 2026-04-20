@@ -7,6 +7,12 @@ import pytz
 # ---------------- CONFIGURAÇÃO INICIAL ----------------
 st.set_page_config(layout="wide", page_title="Caixa Express", page_icon="💸")
 
+# Inicialização das variáveis de meta na sessão (para não precisar de nova planilha)
+if 'meta_diaria' not in st.session_state:
+    st.session_state['meta_diaria'] = 0.0
+if 'meta_mensal' not in st.session_state:
+    st.session_state['meta_mensal'] = 0.0
+
 # ---------------- CSS PREMIUM (MODO ESCURO) ----------------
 st.markdown("""
 <style>
@@ -51,7 +57,7 @@ def update_sheet(sheet, df_completo):
 
 # ---------------- CARREGANDO AS BASES ----------------
 df_vendas = load_data("vendas")
-df_compras = load_data("compras") 
+df_compras = load_data("compras") # Mantido nome interno para conexão
 
 # ---------------- LÓGICA DE DATAS E CÁLCULOS ----------------
 fuso_br = pytz.timezone('America/Sao_Paulo')
@@ -84,6 +90,7 @@ saldo_mes = v_mes - c_mes
 # ---------------- MENU LATERAL ----------------
 with st.sidebar:
     st.title("💸 Pegue Jeans")
+    # Trocado de "Compras" para "Despesas"
     menu = st.radio("Navegação", ["💰 Vendas", "💸 Despesas", "🛠️ Editar", "📊 Balanço"])
     st.divider()
     st.info("Selecione 'Balanço' para ver o relatório completo e filtrar por mês/ano.")
@@ -106,7 +113,7 @@ if menu == "💰 Vendas":
     with st.form("form_venda", clear_on_submit=True):
         col1, col2, col3, col4 = st.columns(4)
         with col1: 
-            venda_data = st.date_input("Data da Venda", hoje_dt, format="DD/MM/YYYY")
+            venda_data = st.date_input("Data da Venda", hoje_dt, format="DD/MM/YYYY") # Novo Campo de Data
         with col2: 
             tipo_venda = st.selectbox("Canal", ["Presencial", "Online"])
         with col3: 
@@ -121,7 +128,7 @@ if menu == "💰 Vendas":
         if st.form_submit_button("💰 Confirmar Venda"):
             if valor > 0:
                 nova = pd.DataFrame([{
-                    "data": venda_data.strftime("%d/%m/%Y"),
+                    "data": venda_data.strftime("%d/%m/%Y"), # Usa a data selecionada
                     "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
                     "tipo": tipo_venda, 
                     "pagamento": forma_pagamento,
@@ -133,7 +140,30 @@ if menu == "💰 Vendas":
 
     st.divider()
     st.subheader(f"📉 Fechamento do Dia ({data_hoje_str})")
-    st.markdown(f'<div class="card"><div class="title">Total Vendido Hoje</div><div class="value">R$ {v_hoje:,.2f}</div></div>', unsafe_allow_html=True)
+    
+    # --- NOVO: Lógica para exibir as metas se configuradas ---
+    m_diaria = st.session_state['meta_diaria']
+    m_mensal = st.session_state['meta_mensal']
+    
+    if m_diaria > 0 or m_mensal > 0:
+        qtd_colunas = 1 + (1 if m_diaria > 0 else 0) + (1 if m_mensal > 0 else 0)
+        colunas_metricas = st.columns(qtd_colunas)
+        
+        with colunas_metricas[0]:
+            st.markdown(f'<div class="card"><div class="title">Total Vendido Hoje</div><div class="value">R$ {v_hoje:,.2f}</div></div>', unsafe_allow_html=True)
+        
+        idx = 1
+        if m_diaria > 0:
+            with colunas_metricas[idx]:
+                st.markdown(f'<div class="card"><div class="title">Meta Diária</div><div class="value">R$ {m_diaria:,.2f}</div></div>', unsafe_allow_html=True)
+            idx += 1
+            
+        if m_mensal > 0:
+            with colunas_metricas[idx]:
+                st.markdown(f'<div class="card"><div class="title">Meta Mensal</div><div class="value">R$ {m_mensal:,.2f}</div></div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="card"><div class="title">Total Vendido Hoje</div><div class="value">R$ {v_hoje:,.2f}</div></div>', unsafe_allow_html=True)
+    # ---------------------------------------------------------
     
     df_v_hoje = df_vendas[df_vendas['data'] == data_hoje_str]
     if not df_v_hoje.empty:
@@ -148,7 +178,7 @@ if menu == "💰 Vendas":
     else:
         st.info("Nenhuma venda hoje.")
 
-# ---------------- PÁGINA: DESPESAS ----------------
+# ---------------- PÁGINA: DESPESAS (ANTIGA COMPRAS) ----------------
 elif menu == "💸 Despesas":
     st.title("💸 Gestão de Despesas")
     senha_compras = st.text_input("Digite a senha para acessar Despesas:", type="password", key="acesso_compras")
@@ -157,20 +187,21 @@ elif menu == "💸 Despesas":
         st.divider()
         st.subheader("Registrar Nova Despesa")
         with st.form("form_compra", clear_on_submit=True):
-            col_c1, col_c2, col_c3 = st.columns(3)
+            col_c1, col_c2, col_c3 = st.columns(3) # Dividi em 3 colunas
             with col_c1:
+                # NOVO: Campo de data para despesas
                 despesa_data = st.date_input("Data da Despesa", hoje_dt, format="DD/MM/YYYY")
             with col_c2:
                 valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
             with col_c3:
-                tipo_despesa = st.selectbox("Tipo de Despesa", ["Roupas", "Salários Colaboradores", "Impostos", "Contador", "Aluguel", "Luz", "Água", "Internet", "Marketing", "Outras"])
+                tipo_despesa = st.selectbox("Tipo de Despesa", ["Roupas", "Salários Colaboradores", "Aluguel", "Luz", "Água", "Internet", "Outras"])
             
             descricao = st.text_input("Descrição (Opcional)")
             
             if st.form_submit_button("💸 Confirmar Despesa"):
                 if valor > 0:
                     nova = pd.DataFrame([{
-                        "data": despesa_data.strftime("%d/%m/%Y"),
+                        "data": despesa_data.strftime("%d/%m/%Y"), # Salva a data selecionada
                         "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
                         "tipo": tipo_despesa, 
                         "descricao": descricao if descricao else "-", 
@@ -281,12 +312,29 @@ elif menu == "🛠️ Editar":
     else:
         st.info(f"A base de {categoria} está vazia.")
 
-# ---------------- PÁGINA: BALANÇO (ATUALIZADA COM FILTRO DE DIA) ----------------
+# ---------------- PÁGINA: BALANÇO ----------------
 elif menu == "📊 Balanço":
     st.title("📊 Balanço Financeiro")
     senha_balanco = st.text_input("Senha gerencial:", type="password", key="senha_bal_final")
     if senha_balanco == "jana@2018":
         st.success("Acesso Liberado!")
+        
+        # --- NOVO: Configuração das Metas pela Gerência ---
+        st.subheader("🎯 Configuração de Metas")
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            nova_meta_diaria = st.number_input("Meta Diária (R$)", min_value=0.0, value=float(st.session_state['meta_diaria']), step=50.0)
+        with col_m2:
+            nova_meta_mensal = st.number_input("Meta Mensal (R$)", min_value=0.0, value=float(st.session_state['meta_mensal']), step=500.0)
+            
+        if st.button("Salvar Metas"):
+            st.session_state['meta_diaria'] = nova_meta_diaria
+            st.session_state['meta_mensal'] = nova_meta_mensal
+            st.success("Metas atualizadas e salvas para a sessão!")
+        
+        st.divider()
+        # ---------------------------------------------------
+
         df_v = df_vendas.copy()
         df_c = df_compras.copy()
         if not df_v.empty: df_v['Movimento'] = '🟢 Venda'
@@ -303,16 +351,14 @@ elif menu == "📊 Balanço":
             with col1: filtro_mes = st.selectbox("Mês", sorted(df_fluxo['Mês'].unique()), index=0)
             with col2: filtro_ano = st.selectbox("Ano", sorted(df_fluxo['Ano'].unique(), reverse=True), index=0)
             
-            # Lógica do filtro de Dia
-            dias_disponiveis = sorted(df_fluxo[(df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)]['Dia'].unique())
-            opcoes_dia = ["Todos"] + list(dias_disponiveis)
-            with col3: filtro_dia = st.selectbox("Dia do Mês", opcoes_dia, index=0)
+            dias_disp = sorted(df_fluxo[(df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)]['Dia'].unique())
+            opcoes_dia = ["Todos"] + list(dias_disp)
+            with col3: filtro_dia = st.selectbox("Dia", opcoes_dia, index=0)
             
-            # Aplicação dos filtros
             mask = (df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)
             if filtro_dia != "Todos":
-                mask = mask & (df_fluxo['Dia'] == filtro_dia)
-                
+                mask &= (df_fluxo['Dia'] == filtro_dia)
+            
             df_filtrado = df_fluxo[mask].copy()
             
             tv = df_filtrado[df_filtrado['Movimento'] == '🟢 Venda']['valor'].sum()
