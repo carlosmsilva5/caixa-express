@@ -1,8 +1,3 @@
-Para atender ao seu pedido, alterei apenas a seção **PÁGINA: BALANÇO**. Adicionei uma terceira coluna para o filtro de "Dia", incluí a opção "Todos" (para manter o somatório do mês como padrão) e ajustei a lógica de filtragem para considerar essa nova variável.
-
-Aqui está o código completo atualizado:
-
-```python
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
@@ -329,4 +324,3 @@ elif menu == "📊 Balanço":
             c3.metric("Saldo", f"R$ {tv-tc:,.2f}")
             st.dataframe(df_filtrado.drop(columns=['Data_DT', 'Dia', 'Mês', 'Ano', 'temp_data_dt'], errors='ignore'), use_container_width=True, hide_index=True,
                          column_config={"valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")})
-```
