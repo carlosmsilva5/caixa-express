@@ -163,7 +163,7 @@ elif menu == "💸 Despesas":
             with col_c2:
                 valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
             with col_c3:
-                tipo_despesa = st.selectbox("Tipo de Despesa", ["Roupas", "Salários Colaboradores", "Aluguel", "Luz", "Água", "Internet", "Outras"])
+                tipo_despesa = st.selectbox("Tipo de Despesa", ["Roupas", "Salários Colaboradores", "Impostos", "Contador", "Aluguel", "Luz", "Água", "Internet", "Marketing", "Outras"])
             
             descricao = st.text_input("Descrição (Opcional)")
             
