@@ -1,3 +1,8 @@
+Para atender ao seu pedido, alterei apenas a seção **PÁGINA: BALANÇO**. Adicionei uma terceira coluna para o filtro de "Dia", incluí a opção "Todos" (para manter o somatório do mês como padrão) e ajustei a lógica de filtragem para considerar essa nova variável.
+
+Aqui está o código completo atualizado:
+
+```python
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
@@ -51,7 +56,7 @@ def update_sheet(sheet, df_completo):
 
 # ---------------- CARREGANDO AS BASES ----------------
 df_vendas = load_data("vendas")
-df_compras = load_data("compras") # Mantido nome interno para conexão
+df_compras = load_data("compras") 
 
 # ---------------- LÓGICA DE DATAS E CÁLCULOS ----------------
 fuso_br = pytz.timezone('America/Sao_Paulo')
@@ -84,7 +89,6 @@ saldo_mes = v_mes - c_mes
 # ---------------- MENU LATERAL ----------------
 with st.sidebar:
     st.title("💸 Pegue Jeans")
-    # Trocado de "Compras" para "Despesas"
     menu = st.radio("Navegação", ["💰 Vendas", "💸 Despesas", "🛠️ Editar", "📊 Balanço"])
     st.divider()
     st.info("Selecione 'Balanço' para ver o relatório completo e filtrar por mês/ano.")
@@ -107,7 +111,7 @@ if menu == "💰 Vendas":
     with st.form("form_venda", clear_on_submit=True):
         col1, col2, col3, col4 = st.columns(4)
         with col1: 
-            venda_data = st.date_input("Data da Venda", hoje_dt, format="DD/MM/YYYY") # Novo Campo de Data
+            venda_data = st.date_input("Data da Venda", hoje_dt, format="DD/MM/YYYY")
         with col2: 
             tipo_venda = st.selectbox("Canal", ["Presencial", "Online"])
         with col3: 
@@ -122,7 +126,7 @@ if menu == "💰 Vendas":
         if st.form_submit_button("💰 Confirmar Venda"):
             if valor > 0:
                 nova = pd.DataFrame([{
-                    "data": venda_data.strftime("%d/%m/%Y"), # Usa a data selecionada
+                    "data": venda_data.strftime("%d/%m/%Y"),
                     "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
                     "tipo": tipo_venda, 
                     "pagamento": forma_pagamento,
@@ -149,7 +153,7 @@ if menu == "💰 Vendas":
     else:
         st.info("Nenhuma venda hoje.")
 
-# ---------------- PÁGINA: DESPESAS (ANTIGA COMPRAS) ----------------
+# ---------------- PÁGINA: DESPESAS ----------------
 elif menu == "💸 Despesas":
     st.title("💸 Gestão de Despesas")
     senha_compras = st.text_input("Digite a senha para acessar Despesas:", type="password", key="acesso_compras")
@@ -158,9 +162,8 @@ elif menu == "💸 Despesas":
         st.divider()
         st.subheader("Registrar Nova Despesa")
         with st.form("form_compra", clear_on_submit=True):
-            col_c1, col_c2, col_c3 = st.columns(3) # Dividi em 3 colunas
+            col_c1, col_c2, col_c3 = st.columns(3)
             with col_c1:
-                # NOVO: Campo de data para despesas
                 despesa_data = st.date_input("Data da Despesa", hoje_dt, format="DD/MM/YYYY")
             with col_c2:
                 valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
@@ -172,7 +175,7 @@ elif menu == "💸 Despesas":
             if st.form_submit_button("💸 Confirmar Despesa"):
                 if valor > 0:
                     nova = pd.DataFrame([{
-                        "data": despesa_data.strftime("%d/%m/%Y"), # Salva a data selecionada
+                        "data": despesa_data.strftime("%d/%m/%Y"),
                         "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
                         "tipo": tipo_despesa, 
                         "descricao": descricao if descricao else "-", 
@@ -283,7 +286,7 @@ elif menu == "🛠️ Editar":
     else:
         st.info(f"A base de {categoria} está vazia.")
 
-# ---------------- PÁGINA: BALANÇO ----------------
+# ---------------- PÁGINA: BALANÇO (ATUALIZADA COM FILTRO DE DIA) ----------------
 elif menu == "📊 Balanço":
     st.title("📊 Balanço Financeiro")
     senha_balanco = st.text_input("Senha gerencial:", type="password", key="senha_bal_final")
@@ -297,12 +300,26 @@ elif menu == "📊 Balanço":
         if not df_fluxo.empty and 'data' in df_fluxo.columns:
             df_fluxo['Data_DT'] = pd.to_datetime(df_fluxo['data'], format='%d/%m/%Y', errors='coerce')
             df_fluxo = df_fluxo.dropna(subset=['Data_DT'])
+            df_fluxo['Dia'] = df_fluxo['Data_DT'].dt.strftime('%d')
             df_fluxo['Mês'] = df_fluxo['Data_DT'].dt.strftime('%m')
             df_fluxo['Ano'] = df_fluxo['Data_DT'].dt.strftime('%Y')
-            col1, col2 = st.columns(2)
+            
+            col1, col2, col3 = st.columns(3)
             with col1: filtro_mes = st.selectbox("Mês", sorted(df_fluxo['Mês'].unique()), index=0)
             with col2: filtro_ano = st.selectbox("Ano", sorted(df_fluxo['Ano'].unique(), reverse=True), index=0)
-            df_filtrado = df_fluxo[(df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)].copy()
+            
+            # Lógica do filtro de Dia
+            dias_disponiveis = sorted(df_fluxo[(df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)]['Dia'].unique())
+            opcoes_dia = ["Todos"] + list(dias_disponiveis)
+            with col3: filtro_dia = st.selectbox("Dia do Mês", opcoes_dia, index=0)
+            
+            # Aplicação dos filtros
+            mask = (df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)
+            if filtro_dia != "Todos":
+                mask = mask & (df_fluxo['Dia'] == filtro_dia)
+                
+            df_filtrado = df_fluxo[mask].copy()
+            
             tv = df_filtrado[df_filtrado['Movimento'] == '🟢 Venda']['valor'].sum()
             tc = df_filtrado[df_filtrado['Movimento'] == '🔴 Despesa']['valor'].sum()
             st.divider()
@@ -310,5 +327,6 @@ elif menu == "📊 Balanço":
             c1.metric("Entradas", f"R$ {tv:,.2f}")
             c2.metric("Saídas", f"R$ {tc:,.2f}")
             c3.metric("Saldo", f"R$ {tv-tc:,.2f}")
-            st.dataframe(df_filtrado.drop(columns=['Data_DT', 'Mês', 'Ano', 'temp_data_dt'], errors='ignore'), use_container_width=True, hide_index=True,
+            st.dataframe(df_filtrado.drop(columns=['Data_DT', 'Dia', 'Mês', 'Ano', 'temp_data_dt'], errors='ignore'), use_container_width=True, hide_index=True,
                          column_config={"valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")})
+```
