@@ -194,7 +194,7 @@ elif menu == "💸 Despesas":
             with col_c2:
                 valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
             with col_c3:
-                tipo_despesa = st.selectbox("Tipo de Despesa", ["Roupas", "Salários Colaboradores", "Impostos", "Contador", "Aluguel", "Marketing" "Luz", "Água", "Internet", "Outras"])
+                tipo_despesa = st.selectbox("Tipo de Despesa", ["Roupas", "Salários Colaboradores", "Impostos", "Contador", "Aluguel", "Marketing", "Luz", "Água", "Internet", "Outras"])
             
             descricao = st.text_input("Descrição (Opcional)")
             
@@ -278,7 +278,7 @@ elif menu == "🛠️ Editar":
                         idx_p = lista_pag.index(val_p) if val_p in lista_pag else 0
                         novo_pag = st.selectbox("Pagamento", lista_pag, index=idx_p)
                 else:
-                    lista_cat = ["Roupas", "Salários Colaboradores", "Impostos", "Contador", "Aluguel", "Marketing" "Luz", "Água", "Internet", "Outras"]
+                    lista_cat = ["Roupas", "Salários Colaboradores", "Impostos", "Contador", "Aluguel", "Marketing", "Luz", "Água", "Internet", "Outras"]
                     cat_atual = linha_atual.get('tipo', 'Outras')
                     idx_c = lista_cat.index(cat_atual) if cat_atual in lista_cat else 0
                     novo_tipo_desp = st.selectbox("Tipo de Despesa", lista_cat, index=idx_c)
