@@ -3,6 +3,7 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 import pytz
+import calendar
 
 # ---------------- CONFIGURAÇÃO INICIAL ----------------
 st.set_page_config(layout="wide", page_title="Caixa Express", page_icon="💸")
@@ -90,7 +91,6 @@ saldo_mes = v_mes - c_mes
 # ---------------- MENU LATERAL ----------------
 with st.sidebar:
     st.title("💸 Pegue Jeans")
-    # Trocado de "Compras" para "Despesas"
     menu = st.radio("Navegação", ["💰 Vendas", "💸 Despesas", "🛠️ Editar", "📊 Balanço"])
     st.divider()
     st.info("Selecione 'Balanço' para ver o relatório completo e filtrar por mês/ano.")
@@ -113,7 +113,7 @@ if menu == "💰 Vendas":
     with st.form("form_venda", clear_on_submit=True):
         col1, col2, col3, col4 = st.columns(4)
         with col1: 
-            venda_data = st.date_input("Data da Venda", hoje_dt, format="DD/MM/YYYY") # Novo Campo de Data
+            venda_data = st.date_input("Data da Venda", hoje_dt, format="DD/MM/YYYY")
         with col2: 
             tipo_venda = st.selectbox("Canal", ["Presencial", "Online"])
         with col3: 
@@ -128,7 +128,7 @@ if menu == "💰 Vendas":
         if st.form_submit_button("💰 Confirmar Venda"):
             if valor > 0:
                 nova = pd.DataFrame([{
-                    "data": venda_data.strftime("%d/%m/%Y"), # Usa a data selecionada
+                    "data": venda_data.strftime("%d/%m/%Y"),
                     "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
                     "tipo": tipo_venda, 
                     "pagamento": forma_pagamento,
@@ -141,7 +141,6 @@ if menu == "💰 Vendas":
     st.divider()
     st.subheader(f"📉 Fechamento do Dia ({data_hoje_str})")
     
-    # --- NOVO: Lógica para exibir as metas se configuradas ---
     m_diaria = st.session_state['meta_diaria']
     m_mensal = st.session_state['meta_mensal']
     
@@ -163,7 +162,6 @@ if menu == "💰 Vendas":
                 st.markdown(f'<div class="card"><div class="title">Meta Mensal</div><div class="value">R$ {m_mensal:,.2f}</div></div>', unsafe_allow_html=True)
     else:
         st.markdown(f'<div class="card"><div class="title">Total Vendido Hoje</div><div class="value">R$ {v_hoje:,.2f}</div></div>', unsafe_allow_html=True)
-    # ---------------------------------------------------------
     
     df_v_hoje = df_vendas[df_vendas['data'] == data_hoje_str]
     if not df_v_hoje.empty:
@@ -178,7 +176,7 @@ if menu == "💰 Vendas":
     else:
         st.info("Nenhuma venda hoje.")
 
-# ---------------- PÁGINA: DESPESAS (ANTIGA COMPRAS) ----------------
+# ---------------- PÁGINA: DESPESAS ----------------
 elif menu == "💸 Despesas":
     st.title("💸 Gestão de Despesas")
     senha_compras = st.text_input("Digite a senha para acessar Despesas:", type="password", key="acesso_compras")
@@ -187,40 +185,70 @@ elif menu == "💸 Despesas":
         st.divider()
         st.subheader("Registrar Nova Despesa")
         with st.form("form_compra", clear_on_submit=True):
-            col_c1, col_c2, col_c3 = st.columns(3) # Dividi em 3 colunas
+            col_c1, col_c2, col_c3, col_c4 = st.columns(4)
             with col_c1:
-                # NOVO: Campo de data para despesas
                 despesa_data = st.date_input("Data da Despesa", hoje_dt, format="DD/MM/YYYY")
             with col_c2:
                 valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
             with col_c3:
                 tipo_despesa = st.selectbox("Tipo de Despesa", ["Roupas", "Salários Colaboradores", "Impostos", "Contador", "Aluguel", "Marketing", "Luz", "Água", "Internet", "Outras"])
+            with col_c4:
+                recorrente = st.selectbox("Recorrente?", ["Não", "Sim"], index=0, help="Ao marcar 'Sim', o valor será repetido mensalmente até o fim do ano.")
             
             descricao = st.text_input("Descrição (Opcional)")
             
             if st.form_submit_button("💸 Confirmar Despesa"):
                 if valor > 0:
-                    nova = pd.DataFrame([{
-                        "data": despesa_data.strftime("%d/%m/%Y"), # Salva a data selecionada
-                        "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
-                        "tipo": tipo_despesa, 
-                        "descricao": descricao if descricao else "-", 
-                        "valor": valor
-                    }])
+                    if recorrente == "Sim":
+                        dados_recorrentes = []
+                        mes_inicial = despesa_data.month
+                        ano_atual = despesa_data.year
+                        for m in range(mes_inicial, 13):
+                            # Ajuste para não quebrar em meses com menos dias (ex: 31 de Jan para Fev)
+                            ultimo_dia_mes = calendar.monthrange(ano_atual, m)[1]
+                            dia_ajustado = min(despesa_data.day, ultimo_dia_mes)
+                            data_gera = datetime(ano_atual, m, dia_ajustado)
+                            
+                            dados_recorrentes.append({
+                                "data": data_gera.strftime("%d/%m/%Y"),
+                                "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
+                                "tipo": tipo_despesa, 
+                                "descricao": descricao if descricao else "-", 
+                                "valor": valor
+                            })
+                        nova = pd.DataFrame(dados_recorrentes)
+                    else:
+                        nova = pd.DataFrame([{
+                            "data": despesa_data.strftime("%d/%m/%Y"),
+                            "hora": datetime.now(fuso_br).strftime("%H:%M:%S"), 
+                            "tipo": tipo_despesa, 
+                            "descricao": descricao if descricao else "-", 
+                            "valor": valor
+                        }])
+                    
                     save_data("compras", nova)
                     st.rerun()
         st.divider()
-        st.subheader(f"📉 Despesas do Dia ({data_hoje_str})")
-        st.markdown(f'<div class="card-red"><div class="title">Total Gasto Hoje</div><div class="value">R$ {c_hoje:,.2f}</div></div>', unsafe_allow_html=True)
-        df_c_hoje = df_compras[df_compras['data'] == data_hoje_str]
-        if not df_c_hoje.empty:
-            st.dataframe(
-                df_c_hoje[["data", "hora", "tipo", "descricao", "valor"]] if "tipo" in df_c_hoje.columns else df_c_hoje[["data", "hora", "descricao", "valor"]], 
-                use_container_width=True, hide_index=True,
-                column_config={"data": "Data", "hora": "Hora", "tipo": "Tipo", "descricao": "Descrição", "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")}
-            )
+        
+        # --- ATUALIZADO: Mostrar Despesas do Mês ---
+        st.subheader(f"📉 Resumo de Despesas do Mês ({mes_atual_str})")
+        st.markdown(f'<div class="card-red"><div class="title">Total Gasto no Mês</div><div class="value">R$ {c_mes:,.2f}</div></div>', unsafe_allow_html=True)
+        
+        # Filtro para mostrar todas as despesas do mês atual
+        if not df_compras.empty and 'temp_data_dt' in df_compras.columns:
+            df_c_mes = df_compras[df_compras['temp_data_dt'].dt.strftime('%m/%Y') == mes_atual_str].sort_values(by='temp_data_dt', ascending=False)
+            
+            if not df_c_mes.empty:
+                st.dataframe(
+                    df_c_mes[["data", "hora", "tipo", "descricao", "valor"]] if "tipo" in df_c_mes.columns else df_c_mes[["data", "hora", "descricao", "valor"]], 
+                    use_container_width=True, hide_index=True,
+                    column_config={"data": "Data", "hora": "Hora", "tipo": "Tipo", "descricao": "Descrição", "valor": st.column_config.NumberColumn("Valor (R$)", format="R$ %.2f")}
+                )
+            else:
+                st.info("Nenhuma despesa registrada neste mês.")
         else:
-            st.info("Nenhuma despesa registrada hoje.")
+            st.info("Inicie os registros para visualizar a tabela.")
+
     elif senha_compras != "":
         st.error("Senha incorreta.")
     else:
@@ -319,7 +347,6 @@ elif menu == "📊 Balanço":
     if senha_balanco == "jana@2018":
         st.success("Acesso Liberado!")
         
-        # --- NOVO: Configuração das Metas pela Gerência ---
         st.subheader("🎯 Configuração de Metas")
         col_m1, col_m2 = st.columns(2)
         with col_m1:
@@ -333,7 +360,6 @@ elif menu == "📊 Balanço":
             st.success("Metas atualizadas e salvas para a sessão!")
         
         st.divider()
-        # ---------------------------------------------------
 
         df_v = df_vendas.copy()
         df_c = df_compras.copy()
