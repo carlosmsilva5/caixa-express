@@ -298,6 +298,7 @@ elif menu == "🛠️ Editar":
                 nova_desc = st.text_area("Descrição", value=linha_atual['descricao'], height=100)
                 
                 if categoria == "Vendas":
+                    # --- VENDAS (Sem opção de recorrência) ---
                     ce1, ce2 = st.columns(2)
                     with ce1: novo_canal = st.selectbox("Canal", ["Presencial", "Online"], index=0 if linha_atual.get('tipo') == "Presencial" else 1)
                     with ce2:
@@ -306,10 +307,15 @@ elif menu == "🛠️ Editar":
                         idx_p = lista_pag.index(val_p) if val_p in lista_pag else 0
                         novo_pag = st.selectbox("Pagamento", lista_pag, index=idx_p)
                 else:
-                    lista_cat = ["Roupas", "Salários Colaboradores", "Impostos", "Contador", "Aluguel", "Marketing", "Luz", "Água", "Internet", "Outras"]
-                    cat_atual = linha_atual.get('tipo', 'Outras')
-                    idx_c = lista_cat.index(cat_atual) if cat_atual in lista_cat else 0
-                    novo_tipo_desp = st.selectbox("Tipo de Despesa", lista_cat, index=idx_c)
+                    # --- DESPESAS (Com opção de recorrência) ---
+                    ce1, ce2 = st.columns(2)
+                    with ce1:
+                        lista_cat = ["Roupas", "Salários Colaboradores", "Impostos", "Contador", "Aluguel", "Marketing", "Luz", "Água", "Internet", "Outras"]
+                        cat_atual = linha_atual.get('tipo', 'Outras')
+                        idx_c = lista_cat.index(cat_atual) if cat_atual in lista_cat else 0
+                        novo_tipo_desp = st.selectbox("Tipo de Despesa", lista_cat, index=idx_c)
+                    with ce2:
+                        novo_recorrente = st.selectbox("Tornar Recorrente?", ["Não", "Sim"], index=0, help="Criará cópias desta despesa para os meses seguintes do ano.")
 
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1: btn_salvar = st.form_submit_button("💾 Salvar Alterações")
@@ -320,11 +326,40 @@ elif menu == "🛠️ Editar":
                     df_base.at[index_selecionado, 'hora'] = nova_hora
                     df_base.at[index_selecionado, 'valor'] = novo_valor
                     df_base.at[index_selecionado, 'descricao'] = nova_desc
+                    
                     if categoria == "Vendas":
                         df_base.at[index_selecionado, 'tipo'] = novo_canal
                         df_base.at[index_selecionado, 'pagamento'] = novo_pag
                     else:
                         df_base.at[index_selecionado, 'tipo'] = novo_tipo_desp
+                        
+                        # A lógica de criar os próximos meses SÓ RODA se for Despesa
+                        if novo_recorrente == "Sim":
+                            try:
+                                dt_base = datetime.strptime(nova_data, "%d/%m/%Y")
+                                mes_inicial = dt_base.month + 1 
+                                ano_atual = dt_base.year
+                                
+                                novos_registros = []
+                                for m in range(mes_inicial, 13):
+                                    ultimo_dia_mes = calendar.monthrange(ano_atual, m)[1]
+                                    dia_ajustado = min(dt_base.day, ultimo_dia_mes)
+                                    data_gera = datetime(ano_atual, m, dia_ajustado)
+                                    
+                                    novos_registros.append({
+                                        "data": data_gera.strftime("%d/%m/%Y"),
+                                        "hora": nova_hora, 
+                                        "tipo": novo_tipo_desp, 
+                                        "descricao": nova_desc, 
+                                        "valor": novo_valor
+                                    })
+                                
+                                if novos_registros:
+                                    df_novos = pd.DataFrame(novos_registros)
+                                    df_base = pd.concat([df_base, df_novos], ignore_index=True)
+                            except ValueError:
+                                st.error("Formato de data inválido. Use DD/MM/AAAA para habilitar a recorrência.")
+                                st.stop()
                     
                     col_limpas = [c for c in df_base.columns if c not in ['Data_DT', 'Dia', 'Mês', 'Ano', 'temp_data_dt']]
                     update_sheet(nome_aba, df_base[col_limpas])
