@@ -231,7 +231,7 @@ elif menu == "💸 Despesas":
         st.divider()
         
         # --- ATUALIZADO: Mostrar Despesas do Mês ---
-        st.subheader(f"📉 Resumo de Despesas do Mês ({mes_atual_str})")
+        st.subheader(f"📉 Despesas do Mês ({mes_atual_str})")
         st.markdown(f'<div class="card-red"><div class="title">Total Gasto no Mês</div><div class="value">R$ {c_mes:,.2f}</div></div>', unsafe_allow_html=True)
         
         # Filtro para mostrar todas as despesas do mês atual
