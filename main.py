@@ -436,12 +436,8 @@ elif menu == "📊 Balanço":
             idx_dia = opcoes_dia.index(hoje_dia) if hoje_dia in opcoes_dia else 0
             
             with col3: 
-                filtro_dia = st.selectbox("Dia", opcoes_dia, index=idx_dia)
-            
-            dias_disp = sorted(df_fluxo[(df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)]['Dia'].unique())
-            opcoes_dia = ["Todos"] + list(dias_disp)
-            with col3: filtro_dia = st.selectbox("Dia", opcoes_dia, index=0)
-            
+                filtro_dia = st.selectbox("Dia", opcoes_dia, index=idx_dia)            
+                     
             mask = (df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)
             if filtro_dia != "Todos":
                 mask &= (df_fluxo['Dia'] == filtro_dia)
