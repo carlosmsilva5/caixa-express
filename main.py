@@ -269,16 +269,24 @@ elif menu == "🛠️ Editar":
         df_base['Mês'] = df_base['Data_DT'].dt.strftime('%m')
         df_base['Ano'] = df_base['Data_DT'].dt.strftime('%Y')
         
+        # Variáveis do dia atual
+        hoje_ano = hoje_dt.strftime('%Y')
+        hoje_mes = hoje_dt.strftime('%m')
+        hoje_dia = hoje_dt.strftime('%d')
+        
         col_d, col_m, col_a = st.columns(3)
         with col_a:
             lista_anos = sorted(df_base['Ano'].unique(), reverse=True)
-            ano_edit = st.selectbox("Ano", lista_anos, index=0)
+            idx_ano = lista_anos.index(hoje_ano) if hoje_ano in lista_anos else 0
+            ano_edit = st.selectbox("Ano", lista_anos, index=idx_ano)
         with col_m:
             meses_disp = sorted(df_base[df_base['Ano'] == ano_edit]['Mês'].unique())
-            mes_edit = st.selectbox("Mês", meses_disp, index=0)
+            idx_mes = meses_disp.index(hoje_mes) if hoje_mes in meses_disp else 0
+            mes_edit = st.selectbox("Mês", meses_disp, index=idx_mes)
         with col_d:
             dias_disp = sorted(df_base[(df_base['Ano'] == ano_edit) & (df_base['Mês'] == mes_edit)]['Dia'].unique())
-            dia_edit = st.selectbox("Dia", dias_disp, index=0)
+            idx_dia = dias_disp.index(hoje_dia) if hoje_dia in dias_disp else 0
+            dia_edit = st.selectbox("Dia", dias_disp, index=idx_dia)
 
         df_filtrado_edit = df_base[(df_base['Dia'] == dia_edit) & (df_base['Mês'] == mes_edit) & (df_base['Ano'] == ano_edit)].copy()
 
@@ -408,9 +416,27 @@ elif menu == "📊 Balanço":
             df_fluxo['Mês'] = df_fluxo['Data_DT'].dt.strftime('%m')
             df_fluxo['Ano'] = df_fluxo['Data_DT'].dt.strftime('%Y')
             
+            # Variáveis do dia atual
+            hoje_ano = hoje_dt.strftime('%Y')
+            hoje_mes = hoje_dt.strftime('%m')
+            hoje_dia = hoje_dt.strftime('%d')
+
             col1, col2, col3 = st.columns(3)
-            with col1: filtro_mes = st.selectbox("Mês", sorted(df_fluxo['Mês'].unique()), index=0)
-            with col2: filtro_ano = st.selectbox("Ano", sorted(df_fluxo['Ano'].unique(), reverse=True), index=0)
+            with col1: 
+                lista_meses = sorted(df_fluxo['Mês'].unique())
+                idx_mes = lista_meses.index(hoje_mes) if hoje_mes in lista_meses else 0
+                filtro_mes = st.selectbox("Mês", lista_meses, index=idx_mes)
+            with col2: 
+                lista_anos = sorted(df_fluxo['Ano'].unique(), reverse=True)
+                idx_ano = lista_anos.index(hoje_ano) if hoje_ano in lista_anos else 0
+                filtro_ano = st.selectbox("Ano", lista_anos, index=idx_ano)
+            
+            dias_disp = sorted(df_fluxo[(df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)]['Dia'].unique())
+            opcoes_dia = ["Todos"] + list(dias_disp)
+            idx_dia = opcoes_dia.index(hoje_dia) if hoje_dia in opcoes_dia else 0
+            
+            with col3: 
+                filtro_dia = st.selectbox("Dia", opcoes_dia, index=idx_dia)
             
             dias_disp = sorted(df_fluxo[(df_fluxo['Mês'] == filtro_mes) & (df_fluxo['Ano'] == filtro_ano)]['Dia'].unique())
             opcoes_dia = ["Todos"] + list(dias_disp)
