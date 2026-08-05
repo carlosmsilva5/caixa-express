@@ -163,7 +163,12 @@ if menu == "💰 Vendas":
     else:
         st.markdown(f'<div class="card"><div class="title">Total Vendido Hoje</div><div class="value">R$ {v_hoje:,.2f}</div></div>', unsafe_allow_html=True)
     
-    df_v_hoje = df_vendas[df_vendas['data'] == data_hoje_str]
+    # Verifica se o DataFrame tem dados e se a coluna 'data' existe
+    if not df_vendas.empty and 'data' in df_vendas.columns:
+        df_v_hoje = df_vendas[df_vendas['data'] == data_hoje_str]
+    else:
+        df_v_hoje = pd.DataFrame() # Cria um dataframe vazio temporário
+
     if not df_v_hoje.empty:
         colunas_exibir = ["data", "hora", "tipo", "pagamento", "descricao", "valor"]
         exibir_df = df_v_hoje[[c for c in colunas_exibir if c in df_v_hoje.columns]]
