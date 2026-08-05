@@ -163,12 +163,14 @@ if menu == "💰 Vendas":
     else:
         st.markdown(f'<div class="card"><div class="title">Total Vendido Hoje</div><div class="value">R$ {v_hoje:,.2f}</div></div>', unsafe_allow_html=True)
     
-    # Verifica se o DataFrame tem dados e se a coluna 'data' existe
+    # ---------------- SUBSTITUA DAQUI PARA BAIXO ----------------
+    # Verifica de forma segura se o DataFrame tem dados e a coluna 'data'
     if not df_vendas.empty and 'data' in df_vendas.columns:
         df_v_hoje = df_vendas[df_vendas['data'] == data_hoje_str]
     else:
-        df_v_hoje = pd.DataFrame() # Cria um dataframe vazio temporário
+        df_v_hoje = pd.DataFrame() # Cria um dataframe vazio de segurança
 
+    # Exibe a tabela de vendas de hoje ou o aviso de vazio
     if not df_v_hoje.empty:
         colunas_exibir = ["data", "hora", "tipo", "pagamento", "descricao", "valor"]
         exibir_df = df_v_hoje[[c for c in colunas_exibir if c in df_v_hoje.columns]]
@@ -180,6 +182,7 @@ if menu == "💰 Vendas":
             })
     else:
         st.info("Nenhuma venda hoje.")
+    # ---------------- ATÉ AQUI ----------------
 
 # ---------------- PÁGINA: DESPESAS ----------------
 elif menu == "💸 Despesas":
