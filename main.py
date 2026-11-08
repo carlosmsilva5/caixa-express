@@ -36,7 +36,8 @@ def load_data(sheet):
         df.columns = [str(c).strip().lower() for c in df.columns] 
         df = df.loc[:, ~df.columns.duplicated()].copy()
         return df
-    except:
+    except Exception as e:
+        st.error(f"Erro ao carregar a aba {sheet}: {e}")
         return pd.DataFrame()
 
 def save_data(sheet, df_new):
