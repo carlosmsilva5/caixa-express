@@ -30,14 +30,26 @@ st.markdown("""
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 @st.cache_data(ttl=2)
-def load_data(sheet):
+def load_data(sheet_name):
     try:
-        df = conn.read(worksheet=sheet, ttl=0).dropna(how='all')
+        client = get_gspread_client()
+        print(f"Tentando abrir planilha ID: {SPREADSHEET_ID}")
+        spreadsheet = client.open_by_key(SPREADSHEET_ID)
+        print(f"Planilha aberta com sucesso! Buscando aba: {sheet_name}")
+        sheet = spreadsheet.worksheet(sheet_name)
+        data = sheet.get_all_records()
+        print(f"Dados obtidos com sucesso para {sheet_name}: {len(data)} linhas")
+        
+        if not data:
+            return pd.DataFrame(columns=["data", "hora", "tipo", "pagamento", "descricao", "valor"])
+            
+        df = pd.DataFrame(data)
         df.columns = [str(c).strip().lower() for c in df.columns] 
         df = df.loc[:, ~df.columns.duplicated()].copy()
         return df
     except Exception as e:
-        st.error(f"Erro ao carregar a aba {sheet}: {e}")
+        print(f"ERRO CRÍTICO em {sheet_name}: {e}")
+        st.error(f"Erro detalhado ao carregar {sheet_name}: {e}")
         return pd.DataFrame()
 
 def save_data(sheet, df_new):
