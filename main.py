@@ -21,7 +21,8 @@ def get_gspread_client():
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-    creds_dict = dict(st.secrets["connections"]["gsheets"])
+    # Puxa o dicionário correto de dentro da subseção service_account do seu secrets
+    creds_dict = dict(st.secrets["connections"]["gsheets"]["service_account"])
     credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(credentials)
 
