@@ -1,45 +1,44 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 import pytz
 import calendar
-import gspread
-from google.oauth2.service_account import Credentials
 
 # ---------------- CONFIGURAÇÃO INICIAL ----------------
 st.set_page_config(layout="wide", page_title="Caixa Express", page_icon="💸")
 
+# Inicialização das variáveis de meta na sessão (para não precisar de nova planilha)
 if 'meta_diaria' not in st.session_state:
     st.session_state['meta_diaria'] = 0.0
 if 'meta_mensal' not in st.session_state:
     st.session_state['meta_mensal'] = 0.0
 
-# ---------------- CONEXÃO COM O GOOGLE SHEETS (GSPREAD) ----------------
-import json
+# ---------------- CSS PREMIUM (MODO ESCURO) ----------------
+st.markdown("""
+<style>
+    .stApp { background-color: #2f3136; color: #e4e6eb; }
+    section[data-testid="stSidebar"] { background-color: #000000; }
+    .card { background: #3a3b3c; padding: 18px; border-radius: 10px; text-align: center; border-left: 5px solid #3ec6a8; margin-bottom: 20px;}
+    .card-red { background: #3a3b3c; padding: 18px; border-radius: 10px; text-align: center; border-left: 5px solid #e74c3c; margin-bottom: 20px;}
+    .title { font-size: 14px; color: #b0b3b8; font-weight: bold; text-transform: uppercase; }
+    .value { font-size: 28px; font-weight: bold; color: #ffffff; }
+</style>
+""", unsafe_allow_html=True)
 
-@st.cache_resource
-def get_gspread_client():
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-    creds_dict = dict(st.secrets["connections"]["gsheets"]["service_account"])
-    
-    # Garante que a chave privada venha limpa e com quebras de linha corretas se houver falha de leitura
-    private_key = creds_dict["private_key"]
-    if "\\n" in private_key and "\n" not in private_key:
-        creds_dict["private_key"] = private_key.replace("\\n", "\n")
+# ---------------- CONEXÃO COM O GOOGLE SHEETS ----------------
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-    credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-    return gspread.authorize(credentials)
-
-SPREADSHEET_ID = "1G1m7VmhX6-XkQLSMN3K6VumOdyiVovDsHjGHvG6aJqU"
-
+@st.cache_data(ttl=2)
 def load_data(sheet_name):
     try:
         client = get_gspread_client()
-        sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+        print(f"Tentando abrir planilha ID: {SPREADSHEET_ID}")
+        spreadsheet = client.open_by_key(SPREADSHEET_ID)
+        print(f"Planilha aberta com sucesso! Buscando aba: {sheet_name}")
+        sheet = spreadsheet.worksheet(sheet_name)
         data = sheet.get_all_records()
+        print(f"Dados obtidos com sucesso para {sheet_name}: {len(data)} linhas")
         
         if not data:
             return pd.DataFrame(columns=["data", "hora", "tipo", "pagamento", "descricao", "valor"])
@@ -49,35 +48,26 @@ def load_data(sheet_name):
         df = df.loc[:, ~df.columns.duplicated()].copy()
         return df
     except Exception as e:
+        print(f"ERRO CRÍTICO em {sheet_name}: {e}")
         st.error(f"Erro detalhado ao carregar {sheet_name}: {e}")
         return pd.DataFrame()
 
-def save_data(sheet_name, df_new):
+def save_data(sheet, df_new):
     try:
-        client = get_gspread_client()
-        sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
-        df_new = df_new.fillna("-")
-        for _, row in df_new.iterrows():
-            linha_valores = [str(val) if val is not None else "" for val in row.values]
-            sheet.append_row(linha_valores)
+        df_atual = conn.read(worksheet=sheet, ttl=0).dropna(how='all')
+        df_novo = pd.concat([df_atual, df_new], ignore_index=True)
+        conn.update(worksheet=sheet, data=df_novo)
         st.cache_data.clear()
-        st.success("Salvo com sucesso!")
     except Exception as e:
-        st.error(f"Erro ao salvar na planilha: {e}")
+        st.error(f"Erro ao salvar: {e}")
 
-def update_sheet(sheet_name, df_completo):
+def update_sheet(sheet, df_completo):
     try:
-        client = get_gspread_client()
-        sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
-        df_completo = df_completo.fillna("-")
-        sheet.clear()
-        cabecalho = df_completo.columns.tolist()
-        linhas = df_completo.astype(str).values.tolist()
-        sheet.update([cabecalho] + linhas)
+        conn.update(worksheet=sheet, data=df_completo)
         st.cache_data.clear()
-        st.success("Planilha atualizada com sucesso!")
+        st.success("Registro atualizado com sucesso!")
     except Exception as e:
-        st.error(f"Erro ao atualizar planilha: {e}")
+        st.error(f"Erro ao atualizar: {e}")
 
 # ---------------- CARREGANDO AS BASES ----------------
 df_vendas = load_data("vendas")
