@@ -23,10 +23,8 @@ def get_gspread_client():
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-    # Lê a string JSON completa de forma limpa, sem erro de PEM
-    raw_json = st.secrets["connections"]["gsheets"]["google_credentials"]
-    creds_dict = json.loads(raw_json)
-    
+    # Puxa o dicionário correto da subseção service_account
+    creds_dict = dict(st.secrets["connections"]["gsheets"]["service_account"])
     credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(credentials)
 
