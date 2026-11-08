@@ -16,6 +16,7 @@ if 'meta_mensal' not in st.session_state:
 
 # ---------------- CONEXÃO COM O GOOGLE SHEETS (GSPREAD) ----------------
 SPREADSHEET_ID = "1G1m7VmhX6-XkQLSMN3K6VumOdyiVovDsHjGHvG6aJqU"
+SENHA_ADMIN = st.secrets["senha_admin"]
 
 @st.cache_resource
 def get_gspread_client():
@@ -127,7 +128,7 @@ with st.sidebar:
     st.info("Selecione 'Balanço' para ver o relatório completo e filtrar por mês/ano.")
     st.markdown("### 📊 Balanço do Mês")
     senha_digitada = st.text_input("Senha de acesso:", type="password")
-    if senha_digitada == "jana@2018": 
+    if senha_digitada == SENHA_ADMIN: 
         st.write(f"Mês: {mes_atual_str}")
         st.markdown(f"🟢 **Entradas:** R$ {v_mes:,.2f}")
         st.markdown(f"🔴 **Saídas:** R$ {c_mes:,.2f}")
@@ -219,7 +220,7 @@ if menu == "💰 Vendas":
 elif menu == "💸 Despesas":
     st.title("💸 Gestão de Despesas")
     senha_compras = st.text_input("Digite a senha para acessar Despesas:", type="password", key="acesso_compras")
-    if senha_compras == "jana@2018":
+    if senha_compras == SENHA_ADMIN:
         st.success("Acesso Liberado!")
         st.divider()
         st.subheader("Registrar Nova Despesa")
@@ -426,7 +427,7 @@ elif menu == "🛠️ Editar":
 elif menu == "📊 Balanço":
     st.title("📊 Balanço Financeiro")
     senha_balanco = st.text_input("Senha gerencial:", type="password", key="senha_bal_final")
-    if senha_balanco == "jana@2018":
+    if senha_balanco == SENHA_ADMIN:
         st.success("Acesso Liberado!")
         
         st.subheader("🎯 Configuração de Metas")
