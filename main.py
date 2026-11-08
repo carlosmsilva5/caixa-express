@@ -1,57 +1,63 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 import pytz
 import calendar
+import gspread
+from google.oauth2.service_account import Credentials
 
 # ---------------- CONFIGURAÇÃO INICIAL ----------------
 st.set_page_config(layout="wide", page_title="Caixa Express", page_icon="💸")
 
-# Inicialização das variáveis de meta na sessão (para não precisar de nova planilha)
 if 'meta_diaria' not in st.session_state:
     st.session_state['meta_diaria'] = 0.0
 if 'meta_mensal' not in st.session_state:
     st.session_state['meta_mensal'] = 0.0
 
-# ---------------- CSS PREMIUM (MODO ESCURO) ----------------
-st.markdown("""
-<style>
-    .stApp { background-color: #2f3136; color: #e4e6eb; }
-    section[data-testid="stSidebar"] { background-color: #000000; }
-    .card { background: #3a3b3c; padding: 18px; border-radius: 10px; text-align: center; border-left: 5px solid #3ec6a8; margin-bottom: 20px;}
-    .card-red { background: #3a3b3c; padding: 18px; border-radius: 10px; text-align: center; border-left: 5px solid #e74c3c; margin-bottom: 20px;}
-    .title { font-size: 14px; color: #b0b3b8; font-weight: bold; text-transform: uppercase; }
-    .value { font-size: 28px; font-weight: bold; color: #ffffff; }
-</style>
-""", unsafe_allow_html=True)
+# ---------------- CONEXÃO COM O GOOGLE SHEETS (GSPREAD) ----------------
+@st.cache_resource
+def get_gspread_client():
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    creds_dict = dict(st.secrets["connections"]["gsheets"])
+    credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    return gspread.authorize(credentials)
 
-# ---------------- CONEXÃO COM O GOOGLE SHEETS ----------------
-conn = st.connection("gsheets", type=GSheetsConnection)
+SPREADSHEET_ID = "1G1m7VmhX6-XkQLSMN3K6VumOdyiVovDsHjGHvG6aJqU"
 
-@st.cache_data(ttl=2)
-def load_data(sheet):
+def load_data(sheet_name):
     try:
-        df = conn.read(worksheet=sheet, ttl=0).dropna(how='all')
+        client = get_gspread_client()
+        sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+        data = sheet.get_all_records()
+        df = pd.DataFrame(data)
+        if df.empty:
+            return pd.DataFrame()
         df.columns = [str(c).strip().lower() for c in df.columns] 
         df = df.loc[:, ~df.columns.duplicated()].copy()
         return df
     except Exception as e:
-        st.error(f"Erro ao carregar a aba {sheet}: {e}")
         return pd.DataFrame()
 
-def save_data(sheet, df_new):
+def save_data(sheet_name, df_new):
     try:
-        df_atual = conn.read(worksheet=sheet, ttl=0).dropna(how='all')
-        df_novo = pd.concat([df_atual, df_new], ignore_index=True)
-        conn.update(worksheet=sheet, data=df_novo)
+        client = get_gspread_client()
+        sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+        for _, row in df_new.iterrows():
+            sheet.append_row(list(row.values))
         st.cache_data.clear()
     except Exception as e:
         st.error(f"Erro ao salvar: {e}")
 
-def update_sheet(sheet, df_completo):
+def update_sheet(sheet_name, df_completo):
     try:
-        conn.update(worksheet=sheet, data=df_completo)
+        client = get_gspread_client()
+        sheet = client.open_by_key(SPREADSHEET_ID).worksheet(sheet_name)
+        sheet.clear()
+        dados_com_cabecalho = [df_completo.columns.tolist()] + df_completo.values.tolist()
+        sheet.update(dados_com_cabecalho)
         st.cache_data.clear()
         st.success("Registro atualizado com sucesso!")
     except Exception as e:
