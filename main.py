@@ -15,17 +15,20 @@ if 'meta_mensal' not in st.session_state:
     st.session_state['meta_mensal'] = 0.0
 
 # ---------------- CONEXÃO COM O GOOGLE SHEETS (GSPREAD) ----------------
+import json
+
 @st.cache_resource
 def get_gspread_client():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-    creds_dict = dict(st.secrets["connections"]["gsheets"]["service_account"])
+    # Lê a string JSON completa de forma limpa, sem erro de PEM
+    raw_json = st.secrets["connections"]["gsheets"]["google_credentials"]
+    creds_dict = json.loads(raw_json)
+    
     credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(credentials)
-
-SPREADSHEET_ID = "1G1m7VmhX6-XkQLSMN3K6VumOdyiVovDsHjGHvG6aJqU"
 
 def load_data(sheet_name):
     try:
