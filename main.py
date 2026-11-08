@@ -24,6 +24,12 @@ def get_gspread_client():
         "https://www.googleapis.com/auth/drive"
     ]
     creds_dict = dict(st.secrets["connections"]["gsheets"]["service_account"])
+    
+    # Garante que a chave privada venha limpa e com quebras de linha corretas se houver falha de leitura
+    private_key = creds_dict["private_key"]
+    if "\\n" in private_key and "\n" not in private_key:
+        creds_dict["private_key"] = private_key.replace("\\n", "\n")
+
     credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(credentials)
 
