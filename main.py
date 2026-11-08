@@ -15,7 +15,7 @@ if 'meta_mensal' not in st.session_state:
     st.session_state['meta_mensal'] = 0.0
 
 # ---------------- CONEXÃO COM O GOOGLE SHEETS (GSPREAD) ----------------
-SPREADSHEET_ID = st.secrets["spreadsheet_id"]
+SPREADSHEET_ID = "1G1m7VmhX6-XkQLSMN3K6VumOdyiVovDsHjGHvG6aJqU"
 
 @st.cache_resource
 def get_gspread_client():
