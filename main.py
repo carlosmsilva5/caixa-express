@@ -1,10 +1,10 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 import pytz
 import calendar
-
+import gspread
+from google.oauth2.service_account import Credentials
 # ---------------- CONFIGURAÇÃO INICIAL ----------------
 st.set_page_config(layout="wide", page_title="Caixa Express", page_icon="💸")
 
