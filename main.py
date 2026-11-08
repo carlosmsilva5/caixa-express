@@ -5,30 +5,17 @@ import pytz
 import calendar
 import gspread
 from google.oauth2.service_account import Credentials
+
 # ---------------- CONFIGURAÇÃO INICIAL ----------------
 st.set_page_config(layout="wide", page_title="Caixa Express", page_icon="💸")
 
-# Inicialização das variáveis de meta na sessão (para não precisar de nova planilha)
 if 'meta_diaria' not in st.session_state:
     st.session_state['meta_diaria'] = 0.0
 if 'meta_mensal' not in st.session_state:
     st.session_state['meta_mensal'] = 0.0
 
-# ---------------- CSS PREMIUM (MODO ESCURO) ----------------
-st.markdown("""
-<style>
-    .stApp { background-color: #2f3136; color: #e4e6eb; }
-    section[data-testid="stSidebar"] { background-color: #000000; }
-    .card { background: #3a3b3c; padding: 18px; border-radius: 10px; text-align: center; border-left: 5px solid #3ec6a8; margin-bottom: 20px;}
-    .card-red { background: #3a3b3c; padding: 18px; border-radius: 10px; text-align: center; border-left: 5px solid #e74c3c; margin-bottom: 20px;}
-    .title { font-size: 14px; color: #b0b3b8; font-weight: bold; text-transform: uppercase; }
-    .value { font-size: 28px; font-weight: bold; color: #ffffff; }
-</style>
-""", unsafe_allow_html=True)
-
-# ---------------- CONEXÃO COM O GOOGLE SHEETS ----------------
-
-SPREADSHEET_ID = "1G1m7VmhX6-XkQLSMN3K6VumOdyiVovDsHjGHvG6aJqU"
+# ---------------- CONEXÃO COM O GOOGLE SHEETS (GSPREAD) ----------------
+SPREADSHEET_ID = st.secrets["spreadsheet_id"]
 
 @st.cache_resource
 def get_gspread_client():
@@ -36,7 +23,19 @@ def get_gspread_client():
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-    creds_dict = dict(st.secrets["connections"]["gsheets"]["service_account"])
+    creds_dict = {
+        "type": st.secrets["type"],
+        "project_id": st.secrets["project_id"],
+        "private_key_id": st.secrets["private_key_id"],
+        "private_key": st.secrets["private_key"],
+        "client_email": st.secrets["client_email"],
+        "client_id": st.secrets["client_id"],
+        "auth_uri": st.secrets["auth_uri"],
+        "token_uri": st.secrets["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["client_x509_cert_url"],
+        "universe_domain": st.secrets["universe_domain"]
+    }
     credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(credentials)
 
@@ -64,13 +63,10 @@ def save_data(sheet_name, df_new):
         client = get_gspread_client()
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
         sheet = spreadsheet.worksheet(sheet_name)
-        
-        # Substitui valores nulos/NaN por string vazia para evitar erros de serialização
         df_new = df_new.fillna("-")
         for _, row in df_new.iterrows():
             linha_valores = [str(val) if val is not None else "" for val in row.values]
             sheet.append_row(linha_valores)
-            
         st.cache_data.clear()
         st.success("Salvo com sucesso!")
     except Exception as e:
@@ -81,14 +77,11 @@ def update_sheet(sheet_name, df_completo):
         client = get_gspread_client()
         spreadsheet = client.open_by_key(SPREADSHEET_ID)
         sheet = spreadsheet.worksheet(sheet_name)
-        
         df_completo = df_completo.fillna("-")
         sheet.clear()
-        
         cabecalho = df_completo.columns.tolist()
         linhas = df_completo.astype(str).values.tolist()
-        sheet.update([cabecalno] if 'cabecalno' in locals() else [cabecalho] + linhas) # Atualiza cabeçalho e dados de uma vez
-        
+        sheet.update([cabecalho] + linhas)
         st.cache_data.clear()
         st.success("Registro atualizado com sucesso!")
     except Exception as e:
@@ -96,7 +89,7 @@ def update_sheet(sheet_name, df_completo):
 
 # ---------------- CARREGANDO AS BASES ----------------
 df_vendas = load_data("vendas")
-df_compras = load_data("compras") # Mantido nome interno para conexão
+df_compras = load_data("compras")
 
 # ---------------- LÓGICA DE DATAS E CÁLCULOS ----------------
 fuso_br = pytz.timezone('America/Sao_Paulo')
