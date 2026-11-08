@@ -23,9 +23,8 @@ def get_gspread_client():
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-    # Carrega o JSON bruto diretamente do secrets de forma limpa
-    creds_json = json.loads(st.secrets["connections"]["gsheets"]["google_credentials"])
-    credentials = Credentials.from_service_account_info(creds_json, scopes=scopes)
+    creds_dict = dict(st.secrets["connections"]["gsheets"]["service_account"])
+    credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(credentials)
 
 SPREADSHEET_ID = "1G1m7VmhX6-XkQLSMN3K6VumOdyiVovDsHjGHvG6aJqU"
