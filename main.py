@@ -31,10 +31,13 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 @st.cache_data(ttl=2)
 def load_data(sheet):
-    df = conn.read(worksheet=sheet, ttl=0).dropna(how='all')
-    df.columns = [str(c).strip().lower() for c in df.columns] 
-    df = df.loc[:, ~df.columns.duplicated()].copy()
-    return df
+    try:
+        df = conn.read(worksheet=sheet, ttl=0).dropna(how='all')
+        df.columns = [str(c).strip().lower() for c in df.columns] 
+        df = df.loc[:, ~df.columns.duplicated()].copy()
+        return df
+    except:
+        return pd.DataFrame()
 
 def save_data(sheet, df_new):
     try:
