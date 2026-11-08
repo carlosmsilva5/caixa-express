@@ -27,7 +27,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------- CONEXÃO COM O GOOGLE SHEETS ----------------
-cconn = st.connection("gsheets", type=GSheetsConnection)
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 @st.cache_data(ttl=2)
 def load_data(sheet):
